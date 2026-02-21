@@ -10,7 +10,7 @@ services:
       - "/dev/bus/usb:/dev/bus/usb"
     command:
       - "-F"
-      - "mqtt://mqtt-broker:1883,retain=0,devices=rtl_433[/model][/id]"
+      - "mqtt://${MQTT_BROKER:-192.168.1.125}:1883,retain=0,devices=rtl_433[/model][/id]"
       - "-M"
       - "level"
       - "-M"
@@ -19,8 +19,6 @@ services:
       - "time:iso8601"
     environment:
       - TZ=Europe/Stockholm
-    depends_on:
-      - mqtt-broker
 
   # Python Backend & Dashboard Web Server
   etherspy-backend:
@@ -30,38 +28,8 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - DB_HOST=mariadb
-      - DB_NAME=etherspy
-      - DB_USER=dbuser
-      - DB_PASS=dbpassword
-      - MQTT_BROKER=mqtt-broker
-    depends_on:
-      - mariadb
-      - mqtt-broker
-
-  # Internal Database
-  mariadb:
-    image: mariadb:10.11
-    container_name: etherspy-mariadb
-    restart: always
-    environment:
-      - MYSQL_ROOT_PASSWORD=rootpassword
-      - MYSQL_DATABASE=etherspy
-      - MYSQL_USER=dbuser
-      - MYSQL_PASSWORD=dbpassword
+      - MQTT_BROKER=${MQTT_BROKER:-192.168.1.125}
+      - MQTT_PORT=1883
+      - DB_PATH=/app/data/etherspy.db
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - mariadb-data:/var/lib/mysql
-
-  # Internal Message Broker
-  mqtt-broker:
-    image: eclipse-mosquitto:latest
-    container_name: etherspy-mqtt
-    restart: always
-    ports:
-      - "1883:1883"
-    volumes:
-      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
-
-volumes:
-  mariadb-data:
+      - ./data:/app/data
