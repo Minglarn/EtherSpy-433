@@ -16,8 +16,8 @@
 - **Standalone Architecture**: Single Docker container with Flask backend and SQLite storage.
 
 ## Hardware
-- **Receiver**: RTL-SDR v4
-- **Antenna**: Moonraker Discone
+- **Receiver**: RTL-SDR v4 or v3.
+- **Antenna**: 433Mhz antenna.
 
 ## Quick Start (Docker)
 

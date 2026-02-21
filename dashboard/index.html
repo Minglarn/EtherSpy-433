@@ -629,7 +629,8 @@
                 <div style="display: flex; flex-direction: column; gap: 0.8rem;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <label style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer; color: white;">
-                            <input type="checkbox" id="sdr_autolevel"> Auto-Sensitivity
+                            <input type="checkbox" id="sdr_autolevel" onchange="onAutoSensitivityChange()">
+                            Auto-Sensitivity
                         </label>
                         <label style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer; color: white;">
                             <input type="checkbox" id="sdr_noise"> Noise Tracking
@@ -642,6 +643,10 @@
                         <label style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer; color: white;">
                             <input type="checkbox" id="sdr_celsius"> Convert °F to °C
                         </label>
+                    </div>
+                    <div
+                        style="font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: -0.4rem; font-style: italic;">
+                        * Auto-Sensitivity (autolevel) optimerar signaltröskeln i mjukvaran för bättre räckvidd.
                     </div>
                 </div>
                 <div class="form-group" style="margin-top: 1rem; margin-bottom: 0;">
@@ -830,6 +835,17 @@
         function toggleModal(show) {
             modal.style.display = show ? 'flex' : 'none';
             if (show) loadSettings();
+        }
+
+        function onAutoSensitivityChange() {
+            const autoSens = document.getElementById('sdr_autolevel');
+            const gainInput = document.getElementById('sdr_gain');
+            if (autoSens.checked && (gainInput.value === '' || !isNaN(gainInput.value))) {
+                // If turning ON auto-sensitivity and gain is empty or a number, suggest 'auto'
+                gainInput.value = 'auto';
+                gainInput.classList.add('flash-update');
+                setTimeout(() => gainInput.classList.remove('flash-update'), 1000);
+            }
         }
 
         async function loadSettings() {
