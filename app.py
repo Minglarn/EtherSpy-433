@@ -160,12 +160,15 @@ def save_to_db(data):
         if get_setting('sdr_celsius', '1') == '1':
             # Create a copy to avoid modifying original if needed elsewhere, 
             # but here it's fine to modify the local 'data'
-            keys_to_convert = [k for k in data.keys() if k.endswith('_F')]
+            # Support both "Temperature_F" and "Temperature F"
+            keys_to_convert = [k for k in data.keys() if k.lower().endswith('_f') or k.lower().endswith(' f')]
             for k_f in keys_to_convert:
                 val_f = safe_float(data[k_f])
                 if val_f is not None:
-                    k_c = k_f[:-2] + '_C'
-                    # Only convert if _C doesn't already exist or is None
+                    # Determine separator
+                    sep = '_' if k_f.lower().endswith('_f') else ' '
+                    k_c = k_f[:-2] + sep + 'C'
+                    # Only convert if C equivalent doesn't already exist
                     if data.get(k_c) is None:
                         val_c = round((val_f - 32) * 5 / 9, 2)
                         data[k_c] = val_c

@@ -990,10 +990,13 @@
                         const kl = k.toLowerCase();
                         if (EXCLUDE.includes(kl)) return false;
                         // Hide Fahrenheit if Celsius mode is on and we have a C equivalent
-                        // Handle both "Temperature_F" and "Temperature F"
                         if (isCelsius && (kl.endsWith('_f') || kl.endsWith(' f'))) {
                             const base = kl.replace(/(_f| f)$/i, '');
-                            if (full[base + '_c'] !== undefined || full[base + ' c'] !== undefined || full[base + 'c'] !== undefined) return false;
+                            const hasC = Object.keys(full).some(key => {
+                                const lKey = key.toLowerCase();
+                                return lKey === base + '_c' || lKey === base + ' c' || lKey === base + 'c';
+                            });
+                            if (hasC) return false;
                         }
                         return true;
                     });
