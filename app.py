@@ -82,6 +82,9 @@ def init_db():
     for key, val in defaults:
         cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, val))
     
+    # Migration: Update old default topic to new better one
+    cursor.execute("UPDATE settings SET value = 'rtl_433[/model][/id][/channel][/address]' WHERE key = 'mqtt_topic' AND value = 'rtl_433[/model][/id]'")
+    
     conn.commit()
     conn.close()
 
