@@ -8,6 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         :root {
             --bg-color: #1a1f2c;
@@ -637,8 +639,18 @@
             lucide.createIcons();
         }
 
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('Connected to Live Data Stream');
+        });
+
+        socket.on('new_data', (data) => {
+            console.log('Live update received');
+            renderSensors(data);
+        });
+
         fetchSensorData();
-        setInterval(fetchSensorData, 10000);
     </script>
 </body>
 

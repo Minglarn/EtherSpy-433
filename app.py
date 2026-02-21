@@ -7,6 +7,7 @@ import subprocess
 import signal
 from flask import Flask, jsonify, send_from_directory, request
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 
@@ -14,6 +15,7 @@ load_dotenv()
 
 app = Flask(__name__, static_folder='dashboard')
 CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # SQLite configuration
 DB_PATH = os.getenv('DB_PATH', 'data/etherspy.db')
@@ -106,6 +108,21 @@ def save_to_db(data):
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (str(sensor_id), brand, model, channel, battery_ok, temp, humidity, raw_json))
         conn.commit()
+        
+        # Fetch the complete sensor list and emit to all clients
+        # We emit the whole list so the frontend can sort and render easily
+        cursor.execute("""
+            SELECT s1.* FROM sensors_data s1
+            JOIN (
+                SELECT sensor_id, MAX(timestamp) as ts
+                FROM sensors_data
+                GROUP BY sensor_id
+            ) s2 ON s1.sensor_id = s2.sensor_id AND s1.timestamp = s2.ts
+            GROUP BY s1.sensor_id
+        """)
+        all_sensors = [dict(row) for row in cursor.fetchall()]
+        socketio.emit('new_data', all_sensors)
+        
         conn.close()
     except Exception as e:
         print(f"Error inserting into SQLite: {e}")
@@ -319,4 +336,4 @@ if __name__ == '__main__':
     sdr_thread.start()
     mqtt_thread = threading.Thread(target=mqtt_subscriber, daemon=True)
     mqtt_thread.start()
-    app.run(host='0.0.0.0', port=5000)
+    socketio.run(app, host='0.0.0.0', port=5000)
