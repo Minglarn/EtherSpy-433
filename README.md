@@ -1,6 +1,6 @@
 # 📡 EtherSpy-433
 
-[![version](https://img.shields.io/badge/version-2026.02.01-blue.svg)](https://github.com/Minglarn/EtherSpy-433)
+[![version](https://img.shields.io/badge/version-2026.02.21-blue.svg)](https://github.com/Minglarn/EtherSpy-433)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![status](https://img.shields.io/badge/status-active-brightgreen.svg)](https://github.com/Minglarn/EtherSpy-433)

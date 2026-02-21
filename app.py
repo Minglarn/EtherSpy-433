@@ -86,27 +86,33 @@ def init_db():
     conn.close()
 
 def get_latest_sensors(conn=None):
-    """Utility to fetch the single most recent record for every unique sensor."""
+    """Utility to fetch the single most recent record for every unique sensor (brand+model+id)."""
     close_conn = False
     if not conn:
         conn = get_db_connection()
         close_conn = True
     
     cursor = conn.cursor()
-    # Robust query using a subquery to find the absolute latest row ID per sensor
+    # Unique identification by (brand, model, sensor_id)
     query = """
         SELECT s.*, a.alias 
         FROM sensors_data s
         INNER JOIN (
-            SELECT sensor_id, MAX(id) as max_id 
+            SELECT brand, model, sensor_id, MAX(id) as max_id 
             FROM sensors_data 
-            GROUP BY sensor_id
+            GROUP BY brand, model, sensor_id
         ) latest ON s.id = latest.max_id
-        LEFT JOIN sensor_aliases a ON s.sensor_id = a.sensor_id
+        LEFT JOIN sensor_aliases a ON (s.brand || ':' || s.model || ':' || s.sensor_id) = a.sensor_id
         ORDER BY s.brand ASC, s.model ASC, s.sensor_id ASC
     """
     cursor.execute(query)
-    rows = [dict(row) for row in cursor.fetchall()]
+    rows = []
+    for row in cursor.fetchall():
+        d = dict(row)
+        # Add a composite UID for the frontend and alias mapping
+        d['uid'] = f"{d['brand']}:{d['model']}:{d['sensor_id']}"
+        rows.append(d)
+        
     if close_conn: conn.close()
     return rows
 
