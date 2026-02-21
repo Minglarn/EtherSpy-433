@@ -175,7 +175,7 @@ def save_to_db(data):
         
         # Consistent emission using the utility
         all_sensors = get_latest_sensors(conn)
-        print(f"Backend: Emitting {len(all_sensors)} sensors via Socket.IO")
+        # print(f"Backend: Emitting {len(all_sensors)} sensors via Socket.IO")
         socketio.emit('new_data', all_sensors)
         
         conn.close()
