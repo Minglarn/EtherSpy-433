@@ -311,6 +311,11 @@ def sdr_worker():
                     try:
                         data = json.loads(line)
                         save_to_db(data)
+                        # Log a concise summary of the found sensor
+                        brand = data.get('brand', 'Generic')
+                        model = data.get('model', 'Unknown')
+                        sid = data.get('id', data.get('sensor_id', '?'))
+                        print(f"SDR Engine: [DATA] Found {brand} {model} (#{sid})")
                         continue
                     except json.JSONDecodeError:
                         pass

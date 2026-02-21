@@ -336,6 +336,12 @@
         .metric-value {
             font-weight: 500;
             color: white;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            min-width: 65px;
+            justify-content: flex-end;
+            text-align: right;
         }
 
         .card-footer {
@@ -624,6 +630,7 @@
 
         let staleThresholdMins = 30;
         let lastSensorData = {};
+        let trendStore = {}; // { sensorId: { key: 'up'|'down' } }
         let expandedCards = new Set();
         let currentQuickFilter = 'all';
 
@@ -783,9 +790,21 @@
                     let cardEl = document.getElementById(cardId);
 
                     const trend = (k, v) => {
-                        if (!old.raw_json) return '';
-                        const oV = JSON.parse(old.raw_json)[k];
-                        return (oV === undefined || oV === v) ? '' : (v > oV ? '<i class="trend-up" data-lucide="arrow-up-right"></i>' : '<i class="trend-down" data-lucide="arrow-down-right"></i>');
+                        const sId = s.sensor_id;
+                        if (!trendStore[sId]) trendStore[sId] = {};
+
+                        const oldVal = old.raw_json ? JSON.parse(old.raw_json)[k] : undefined;
+                        const curVal = parseFloat(v);
+                        const prvVal = parseFloat(oldVal);
+
+                        if (!isNaN(curVal) && !isNaN(prvVal) && curVal !== prvVal) {
+                            trendStore[sId][k] = curVal > prvVal ? 'up' : 'down';
+                        }
+
+                        const currentTrend = trendStore[sId][k];
+                        if (currentTrend === 'up') return '<i class="trend-up" data-lucide="arrow-up-right"></i>';
+                        if (currentTrend === 'down') return '<i class="trend-down" data-lucide="arrow-down-right"></i>';
+                        return '<span style="width:16px;display:inline-block"></span>'; // Placeholder to keep width stable
                     };
 
                     const row = (k, v) => {
