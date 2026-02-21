@@ -149,6 +149,7 @@ def restart_sdr():
             sdr_process.wait(timeout=5)
         except subprocess.TimeoutExpired:
             sdr_process.kill()
+        sdr_process = None
 
 # Flask API
 @app.route('/api/data')
