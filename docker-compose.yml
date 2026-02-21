@@ -9,7 +9,7 @@ services:
       - "/dev/bus/usb:/dev/bus/usb"
     command:
       - "-F"
-      - "mqtt://192.168.1.125:1883,retain=0,devices=rtl_433[/model][/id]"
+      - "mqtt://mqtt-broker:1883,retain=0,devices=rtl_433[/model][/id]"
       - "-M"
       - "level"
       - "-M"
@@ -18,6 +18,42 @@ services:
       - "time:iso8601"
     environment:
       - TZ=Europe/Stockholm
+
+  etherspy-backend:
+    build: .
+    container_name: etherspy-backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_HOST=mariadb
+      - DB_NAME=etherspy
+      - DB_USER=dbuser
+      - DB_PASS=dbpassword
+    depends_on:
+      - mariadb
+
+  mariadb:
+    image: mariadb:latest
+    container_name: etherspy-mariadb
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=etherspy
+      - MYSQL_USER=dbuser
+      - MYSQL_PASSWORD=dbpassword
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mariadb-data:/var/lib/mysql
+
+  mqtt-broker:
+    image: eclipse-mosquitto:latest
+    container_name: etherspy-mqtt
+    restart: always
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
 
   grafana:
     image: grafana/grafana-oss:latest

@@ -20,15 +20,22 @@ jobs:
         with:
           args: lint --dialect mariadb .
 
-      - name: Lint PHP Files
-        run: |
-          find . -name "*.php" -exec php -l {} \;
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install flake8
+
+      - name: Lint Python Files
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
       - name: Project Structure Check
         run: |
           ls -R
           [ -f docker-compose.yml ] || exit 1
           [ -f init.sql ] || exit 1
+          [ -f app.py ] || exit 1
           [ -d dashboard ] || exit 1
           [ -f dashboard/index.html ] || exit 1
-          [ -f api/data.php ] || exit 1

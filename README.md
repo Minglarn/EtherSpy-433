@@ -40,19 +40,17 @@ Start the service:
 docker-compose up -d
 ```
 
-### 4. Node-RED Integration
-1. Add an `mqtt in` node subscribing to `rtl_433/+/events`.
-2. Connect it to a `function` node and paste the code from `nodered_function.js`.
-3. Connect the function node to a `mysql` or `mariadb` node (configured with your DB credentials).
+### 4. Standalone Backend (Python/Flask)
+The backend is now a standalone Python/Flask application containerized within the Docker stack. It serves the Premium Dashboard and the data API.
 
 ### 5. Web UI & Visualization
-- **Grafana:** Access at `http://localhost:3000` (User: `admin` / Pass: `admin`). Use the query in `grafana_query.sql`.
-- **Premium Dashboard:** Open `dashboard/index.html` in your browser.
-  - Note: Configure `api/data.php` with your database credentials to enable live data.
+- **Premium Dashboard:** Access at `http://localhost:5000`. This is the primary standalone interface.
+- **Grafana:** Access at `http://localhost:3000` (User: `admin` / Pass: `admin`) for deep analytics.
 
 ## Project Structure
-- `docker-compose.yml`: Services for SDR and Grafana.
-- `init.sql`: Database schema.
-- `nodered_function.js`: Integration logic.
+- `docker-compose.yml`: Full stack orchestration (SDR, Backend, DB, MQTT).
+- `app.py`: Flask backend and static file server.
+- `Dockerfile`: Multi-stage build for the standalone backend.
 - `dashboard/`: Custom Web UI assets.
-- `api/`: Backend data interface.
+- `init.sql`: MariaDB schema.
+- `mosquitto.conf`: MQTT broker configuration.
