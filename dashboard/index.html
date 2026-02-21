@@ -686,7 +686,10 @@
                     };
 
                     const row = (k, v) => {
-                        const c = FIELD_MAP[k.toLowerCase()] || { label: k, icon: 'info' };
+                        const c = FIELD_MAP[k.toLowerCase()] || {
+                            label: k.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+                            icon: 'info'
+                        };
                         return `<div class="metric-row"><div class="metric-label"><i data-lucide="${c.icon}"></i> ${c.label}</div><div class="metric-value">${v}${trend(k, v)}</div></div>`;
                     };
 
@@ -698,7 +701,7 @@
                         <div class="card ${s.battery_ok === 0 ? 'battery-low' : ''} ${updated && old.timestamp ? 'flash-update' : ''}" onclick="editAlias('${s.sensor_id}','${s.alias || ''}')" style="cursor:pointer">
                             <div class="card-header"><span class="sensor-id">#${s.sensor_id}</span><div class="last-seen"><div class="status-dot ${updated ? 'status-online' : 'status-stale'}"></div>${timeAgo(s.timestamp + "Z")}</div></div>
                             <h3>${s.alias || cleanName(s.brand + ' ' + s.model)} <i data-lucide="edit-3" style="width:12px;opacity:0.3"></i></h3>
-                            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem;">
+                            <div class="simple-metrics" style="margin-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem;">
                                 ${Object.keys(full).filter(k => !EXCLUDE.includes(k.toLowerCase())).map(k => row(k, full[k])).join('')}
                             </div>
                         </div>`;
