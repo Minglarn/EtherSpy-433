@@ -235,9 +235,8 @@ def sdr_worker():
                 for p in protocols.split(','):
                     cmd.extend(["-R", p.strip()])
             else:
-                # Use -G for all standard decoders
-                cmd.append("-G")
-                # If starred protocols are requested, add them explicitly
+                # If starred protocols are requested, add them explicitly. 
+                # Note: -G is deprecated, omitting it enables all standard protocols by default.
                 if get_setting('sdr_starred', '0') == '1':
                     starred = ["6", "7", "13", "14", "24", "37", "48", "61", "62", "64", "72", "86", "101", "106", "107", "117", "118", "123", "129", "150", "162", "169", "198", "200", "216", "233", "242", "245", "248", "260"]
                     for sp in starred:
