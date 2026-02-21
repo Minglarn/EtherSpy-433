@@ -352,6 +352,10 @@
                     <input type="password" id="mqtt_pass">
                 </div>
             </div>
+            <div class="form-group">
+                <label>MQTT Topic Prefix (e.g. home/sensors[/model][/id])</label>
+                <input type="text" id="mqtt_topic" placeholder="rtl_433[/model][/id]">
+            </div>
             <div class="modal-actions">
                 <button class="btn btn-primary" onclick="saveSettings()">Save & Restart</button>
                 <button class="btn btn-secondary" onclick="toggleModal(false)">Cancel</button>
@@ -396,7 +400,8 @@
                 mqtt_broker: document.getElementById('mqtt_broker').value,
                 mqtt_port: document.getElementById('mqtt_port').value,
                 mqtt_user: document.getElementById('mqtt_user').value,
-                mqtt_pass: document.getElementById('mqtt_pass').value
+                mqtt_pass: document.getElementById('mqtt_pass').value,
+                mqtt_topic: document.getElementById('mqtt_topic').value
             };
 
             await fetch('/api/settings', {

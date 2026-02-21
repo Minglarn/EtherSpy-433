@@ -57,7 +57,8 @@ def init_db():
         ('mqtt_broker', os.getenv('MQTT_BROKER', '192.168.1.125')),
         ('mqtt_port', os.getenv('MQTT_PORT', '1883')),
         ('mqtt_user', os.getenv('MQTT_USER', '')),
-        ('mqtt_pass', os.getenv('MQTT_PASS', ''))
+        ('mqtt_pass', os.getenv('MQTT_PASS', '')),
+        ('mqtt_topic', 'rtl_433[/model][/id]')
     ]
     for key, val in defaults:
         cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, val))
@@ -163,6 +164,7 @@ def sdr_worker():
             port = get_setting('mqtt_port', '1883')
             user = get_setting('mqtt_user', '')
             pw = get_setting('mqtt_pass', '')
+            topic = get_setting('mqtt_topic', 'rtl_433[/model][/id]')
 
             # Heuristic: Fix serial ID if user forgot the colon
             if len(device) > 2 and not device.startswith(':') and not device.isdigit():
@@ -187,7 +189,7 @@ def sdr_worker():
                 if user: mqtt_dest += f",user={user}"
                 if pw: mqtt_dest += f",pass={pw}"
                 # Using 'events=' ensures single JSON messages instead of split topics
-                mqtt_dest += ",retain=0,events=rtl_433[/model][/id]"
+                mqtt_dest += f",retain=0,events={topic}"
                 cmd.extend(["-F", mqtt_dest])
 
             # Handle protocols safely
