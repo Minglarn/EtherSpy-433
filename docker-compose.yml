@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  rtl_433:
+    image: hertzg/rtl_433:latest
+    container_name: etherspy-433
+    restart: always
+    devices:
+      - "/dev/bus/usb:/dev/bus/usb"
+    command:
+      - "-F"
+      - "mqtt://192.168.1.125:1883,retain=0,devices=rtl_433[/model][/id]"
+      - "-M"
+      - "level"
+      - "-M"
+      - "metadata"
+      - "-M"
+      - "time:iso8601"
+    environment:
+      - TZ=Europe/Stockholm
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: etherspy-grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - TZ=Europe/Stockholm
+    volumes:
+      - grafana-storage:/var/lib/grafana
+
+volumes:
+  grafana-storage:
+
+    # Note: Ensure RTL-SDR v4 is plugged in and drivers are blacklisted on host.

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EtherSpy-433 | SDR Monitoring</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --accent-color: #38bdf8;
+            --text-color: #f1f5f9;
+            --danger: #ef4444;
+            --success: #22c55e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: var(--bg-color);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.15) 0, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0, transparent 50%);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .logo h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            letter-spacing: -1px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            padding: 0.5rem 1.5rem;
+            border-radius: 99px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .pulse {
+            width: 10px;
+            height: 10px;
+            background: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 2rem;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--accent-color);
+            opacity: 0.5;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .sensor-tag {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .value-display {
+            font-size: 3.5rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+
+        .unit {
+            font-size: 1.5rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .sub-data {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .data-item i {
+            margin-right: 0.3rem;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            }
+
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+            }
+
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .refresh-btn {
+            background: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>EtherSpy-433</h1>
+            </div>
+            <div class="status-badge">
+                <div class="pulse"></div> Live Monitoring Active
+            </div>
+        </header>
+
+        <div class="grid" id="sensorGrid">
+            <!-- Sensor cards will be injected here -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="sensor-tag">Outdoor Station #24</span>
+                    <span class="sensor-tag" style="color: rgba(255,255,255,0.4)">Just now</span>
+                </div>
+                <div class="value-display">
+                    22.4<span class="unit">°C</span>
+                </div>
+                <div class="sub-data">
+                    <div class="data-item">45% Humidity</div>
+                    <div class="data-item" style="color: var(--success)">Battery OK</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="sensor-tag">Greenhouse Probe</span>
+                    <span class="sensor-tag" style="color: rgba(255,255,255,0.4)">2m ago</span>
+                </div>
+                <div class="value-display">
+                    18.1<span class="unit">°C</span>
+                </div>
+                <div class="sub-data">
+                    <div class="data-item">88% Humidity</div>
+                    <div class="data-item" style="color: var(--danger)">Low Battery</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 4rem; text-align: center;">
+            <button class="refresh-btn" onclick="location.reload()">Refresh Data</button>
+        </div>
+    </div>
+
+    <script>
+        // Future logic for fetching from api/data.php
+        async function fetchSensorData() {
+            // This would call your PHP API
+            console.log("Polling for new SDR data...");
+        }
+        setInterval(fetchSensorData, 30000);
+    </script>
+</body>
+
+</html>
