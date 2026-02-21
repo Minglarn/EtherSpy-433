@@ -111,8 +111,8 @@
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.2rem;
         }
 
         .card {
@@ -120,13 +120,13 @@
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 28px;
-            padding: 1.5rem;
+            border-radius: 20px;
+            padding: 1.2rem;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             display: flex;
             flex-direction: column;
-            gap: 1.2rem;
+            gap: 0.8rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
@@ -191,7 +191,7 @@
         }
 
         .card h3 {
-            font-size: 1.35rem;
+            font-size: 1.2rem;
             font-weight: 600;
             margin-top: -0.2rem;
             color: white;
@@ -233,13 +233,59 @@
             width: 18px;
         }
 
-        /* Metric List View (Tellus style) */
+        /* Metric List View (Dense 2-column) */
         .metric-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.8rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem 1.5rem;
             border-top: 1px solid rgba(255, 255, 255, 0.05);
             padding-top: 1rem;
+        }
+
+        .metric-list.full-width {
+            grid-template-columns: 1fr;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .metric-list-extra {
+            grid-column: 1 / -1;
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem 1.5rem;
+            margin-top: 1rem;
+            border-top: 1px dotted rgba(255, 255, 255, 0.1);
+            padding-top: 1rem;
+        }
+
+        .card.expanded .metric-list-extra {
+            display: grid;
+        }
+
+        .toggle-details {
+            grid-column: 1 / -1;
+            background: transparent;
+            border: none;
+            color: var(--accent-color);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .toggle-details:hover {
+            opacity: 1;
         }
 
         .metric-row {
@@ -543,44 +589,56 @@
         function timeAgo(date) {
             const seconds = Math.floor((new Date() - new Date(date)) / 1000);
             if (seconds < 10) return "Just now";
-            if (seconds < 60) return seconds + "s";
-            if (seconds < 3600) return Math.floor(seconds / 60) + "m";
-            return Math.floor(seconds / 3600) + "h ago";
-        }
+            // Global state for expanded cards
+            let expandedCards = new Set();
 
-        function renderSensors(sensors) {
-            if (!sensors || sensors.length === 0) {
-                sensorGrid.innerHTML = '<div class="card" style="grid-column: 1/-1; text-align: center;"><p>Waiting for sensor signals...</p></div>';
-                return;
+            function toggleCard(sensorId) {
+                if (expandedCards.has(sensorId)) {
+                    expandedCards.delete(sensorId);
+                } else {
+                    expandedCards.add(sensorId);
+                }
+                // We use the full sensor list to re-render, but usually we just want to update this one.
+                // For simplicity and to avoid fetching again, we can just re-render everything
+                // or we could store the last sensor data globally.
+                if (window.lastSensors) renderSensors(window.lastSensors);
             }
 
-            const sorted = sensors.sort((a, b) => {
-                const keyA = `${a.brand}${a.model}${a.sensor_id}`.toLowerCase();
-                const keyB = `${b.brand}${b.model}${b.sensor_id}`.toLowerCase();
-                return keyA.localeCompare(keyB);
-            });
+            function renderSensors(sensors) {
+                window.lastSensors = sensors;
+                if (!sensors || sensors.length === 0) {
+                    sensorGrid.innerHTML = '<div class="card" style="grid-column: 1/-1; text-align: center;"><p>Waiting for sensor signals...</p></div>';
+                    return;
+                }
 
-            sensorGrid.innerHTML = sorted.map(s => {
-                let fullData = {};
-                try { fullData = JSON.parse(s.raw_json); } catch (e) { fullData = s; }
+                const sorted = sensors.sort((a, b) => {
+                    const keyA = `${a.brand}${a.model}${a.sensor_id}`.toLowerCase();
+                    const keyB = `${b.brand}${b.model}${b.sensor_id}`.toLowerCase();
+                    return keyA.localeCompare(keyB);
+                });
 
-                const secondsSince = Math.floor((new Date() - new Date(s.timestamp + "Z")) / 1000);
-                let statusClass = 'status-online';
-                let cardOpacity = 1;
-                if (secondsSince > 300) { statusClass = 'status-stale'; cardOpacity = 0.7; }
-                if (secondsSince > 1800) { statusClass = 'status-offline'; cardOpacity = 0.5; }
+                sensorGrid.innerHTML = sorted.map(s => {
+                    let fullData = {};
+                    try { fullData = JSON.parse(s.raw_json); } catch (e) { fullData = s; }
 
-                const skipFields = ['time', 'model', 'id', 'brand', 'channel', 'battery_ok', 'mic', 'mod', 'freq', 'rssi', 'snr', 'noise'];
-                const dataKeys = Object.keys(fullData).filter(k => !skipFields.includes(k.toLowerCase()));
+                    const secondsSince = Math.floor((new Date() - new Date(s.timestamp + "Z")) / 1000);
+                    let statusClass = 'status-online';
+                    let cardOpacity = 1;
+                    if (secondsSince > 300) { statusClass = 'status-stale'; cardOpacity = 0.7; }
+                    if (secondsSince > 1800) { statusClass = 'status-offline'; cardOpacity = 0.5; }
 
-                // Determine if we show "Simple" (Large Temp) or "Metric List"
-                const isComplex = dataKeys.length > 3 || dataKeys.some(k => k.includes('wind') || k.includes('rain') || k.includes('pressure') || k.includes('tire'));
+                    const skipFields = ['time', 'model', 'id', 'brand', 'channel', 'battery_ok', 'mic', 'mod', 'freq', 'rssi', 'snr', 'noise'];
+                    const dataKeys = Object.keys(fullData).filter(k => !skipFields.includes(k.toLowerCase()));
 
-                let mainContent = '';
-                if (!isComplex) {
-                    const temp = fullData.temperature_C || fullData.temperature_F || '--';
-                    const hum = fullData.humidity !== undefined ? fullData.humidity : '--';
-                    mainContent = `
+                    // Determine if we show "Simple" (Large Temp) or "Metric List"
+                    const isComplex = dataKeys.length > 3 || dataKeys.some(k => k.includes('wind') || k.includes('rain') || k.includes('pressure') || k.includes('tire'));
+                    const isExpanded = expandedCards.has(s.sensor_id);
+
+                    let mainContent = '';
+                    if (!isComplex) {
+                        const temp = fullData.temperature_C || fullData.temperature_F || '--';
+                        const hum = fullData.humidity !== undefined ? fullData.humidity : '--';
+                        mainContent = `
                         <div class="simple-metrics">
                             <div class="temp-large">${temp}<span class="unit">°C</span></div>
                             <div class="humid-overlay">
@@ -589,36 +647,53 @@
                             </div>
                         </div>
                     `;
-                } else {
-                    mainContent = `
-                        <div class="metric-list">
-                            ${dataKeys.map(k => {
-                        const info = FIELD_MAP[k.toLowerCase()] || { label: k.replace(/_/g, ' '), icon: 'activity' };
-                        let val = fullData[k];
-                        let unit = '';
-                        const lvk = k.toLowerCase();
-                        if (lvk.includes('_c')) unit = '°C';
-                        if (lvk.includes('_f')) unit = '°F';
-                        if (lvk.includes('m_s')) unit = 'm/s';
-                        if (lvk.includes('deg')) unit = '°';
-                        if (lvk.includes('mm')) unit = 'mm';
-                        if (lvk.includes('hpa')) unit = ' hPa';
-                        if (lvk.includes('psi')) unit = ' PSI';
-                        if (lvk.includes('humidity')) unit = '%';
-                        if (lvk.includes('lux')) unit = ' lx';
+                    } else {
+                        // Split metrics into primary (top 4) and extra
+                        const primaryKeys = dataKeys.slice(0, 4);
+                        const extraKeys = dataKeys.slice(4);
 
-                        return `
-                                    <div class="metric-row">
-                                        <div class="metric-label"><i data-lucide="${info.icon}"></i> ${info.label}</div>
-                                        <div class="metric-value">${val}${unit}</div>
-                                `;
-                    }).join('')}
+                        const renderMetricRow = (k) => {
+                            const info = FIELD_MAP[k.toLowerCase()] || { label: k.replace(/_/g, ' '), icon: 'activity' };
+                            let val = fullData[k];
+                            let unit = '';
+                            const lvk = k.toLowerCase();
+                            if (lvk.includes('_c')) unit = '°C';
+                            if (lvk.includes('_f')) unit = '°F';
+                            if (lvk.includes('m_s')) unit = 'm/s';
+                            if (lvk.includes('deg')) unit = '°';
+                            if (lvk.includes('mm')) unit = 'mm';
+                            if (lvk.includes('hpa')) unit = ' hPa';
+                            if (lvk.includes('psi')) unit = ' PSI';
+                            if (lvk.includes('humidity')) unit = '%';
+                            if (lvk.includes('lux')) unit = ' lx';
+
+                            return `
+                            <div class="metric-row">
+                                <div class="metric-label"><i data-lucide="${info.icon}"></i> ${info.label}</div>
+                                <div class="metric-value">${val}${unit}</div>
+                            </div>
+                        `;
+                        };
+
+                        mainContent = `
+                        <div class="metric-list">
+                            ${primaryKeys.map(renderMetricRow).join('')}
+                            
+                            ${extraKeys.length > 0 ? `
+                                <div class="metric-list-extra" style="display: ${isExpanded ? 'block' : 'none'};">
+                                    ${extraKeys.map(renderMetricRow).join('')}
+                                </div>
+                                <button class="toggle-details" onclick="toggleCard('${s.sensor_id}')">
+                                    <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}"></i>
+                                    ${isExpanded ? 'Show Less' : `Show more (+${extraKeys.length})`}
+                                </button>
+                            ` : ''}
                         </div>
                     `;
-                }
+                    }
 
-                return `
-                    <div class="card" style="opacity: ${cardOpacity}">
+                    return `
+                    <div class="card ${isExpanded ? 'expanded' : ''}" style="opacity: ${cardOpacity}">
                         <div class="card-header">
                             <span class="sensor-id">#${s.sensor_id}</span>
                             <div class="last-seen">
@@ -627,7 +702,7 @@
                             </div>
                         </div>
 
-                        <h3>${cleanName(s.brand)}<br><small style="font-size: 0.9rem; opacity: 0.6; font-weight: 400;">${cleanName(s.model)}</small></h3>
+                        <h3>${cleanName(s.brand)}<br><small style="font-size: 0.8rem; opacity: 0.6; font-weight: 400;">${cleanName(s.model)}</small></h3>
 
                         ${mainContent}
 
@@ -640,14 +715,11 @@
                         </div>
                     </div>
                 `;
-            }).join('');
+                }).join('');
 
-            lucide.createIcons();
-        }
+                lucide.createIcons();
+            }
 
-        const socket = io();
-
-        socket.on('connect', () => {
             console.log('Connected to Live Data Stream');
         });
 
