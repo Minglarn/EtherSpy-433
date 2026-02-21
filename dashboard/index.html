@@ -158,25 +158,6 @@
             animation: flash-update 1.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Battery Low Aura */
-        @keyframes battery-pulse {
-            0% {
-                box-shadow: 0 0 5px var(--danger);
-            }
-
-            50% {
-                box-shadow: 0 0 20px var(--danger);
-            }
-
-            100% {
-                box-shadow: 0 0 5px var(--danger);
-            }
-        }
-
-        .battery-low {
-            border-color: var(--danger) !important;
-            animation: battery-pulse 2s infinite ease-in-out;
-        }
 
         /* Trend Indicators */
         .trend-up {
@@ -698,7 +679,7 @@
 
                     lastSensorData[s.sensor_id] = s;
                     return `
-                        <div class="card ${s.battery_ok === 0 ? 'battery-low' : ''} ${updated && old.timestamp ? 'flash-update' : ''}" onclick="editAlias('${s.sensor_id}','${s.alias || ''}')" style="cursor:pointer">
+                        <div class="card ${updated && old.timestamp ? 'flash-update' : ''}" onclick="editAlias('${s.sensor_id}','${s.alias || ''}')" style="cursor:pointer">
                             <div class="card-header"><span class="sensor-id">#${s.sensor_id}</span><div class="last-seen"><div class="status-dot ${updated ? 'status-online' : 'status-stale'}"></div>${timeAgo(s.timestamp + "Z")}</div></div>
                             <h3>${s.alias || cleanName(s.brand + ' ' + s.model)} <i data-lucide="edit-3" style="width:12px;opacity:0.3"></i></h3>
                             <div class="simple-metrics" style="margin-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem;">
