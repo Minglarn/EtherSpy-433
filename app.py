@@ -97,9 +97,15 @@ def save_to_db(data):
         model = data.get('model', 'Unknown')
         channel = str(data.get('channel', '0'))
         battery_ok = 1 if data.get('battery_ok') in ["OK", 1, True] else 0
-        temp = data.get('temperature_C')
-        if temp is None: temp = data.get('temperature_F') # Fallback
-        humidity = data.get('humidity')
+        
+        # Safe extraction of numeric fields
+        def safe_float(v):
+            try: return float(v) if v is not None else None
+            except: return None
+
+        temp = safe_float(data.get('temperature_C'))
+        if temp is None: temp = safe_float(data.get('temperature_F'))
+        humidity = safe_float(data.get('humidity'))
         raw_json = json.dumps(data)
 
         cursor.execute("""

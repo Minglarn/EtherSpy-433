@@ -533,7 +533,11 @@
             'wind_dir_deg': { label: 'Wind Dir', icon: 'compass' },
             'rain_mm': { label: 'Rain', icon: 'cloud-rain' },
             'rain_rate_mm_h': { label: 'Rain Rate', icon: 'cloud-rain' },
-            'battery_ok': { label: 'Battery', icon: 'battery' }
+            'battery_ok': { label: 'Battery', icon: 'battery' },
+            'pressure_psi': { label: 'Tire Pressure', icon: 'gauge-circle' },
+            'uv': { label: 'UV Index', icon: 'sun' },
+            'lux': { label: 'Light', icon: 'sun' },
+            'moisture': { label: 'Moisture', icon: 'sprout' }
         };
 
         function timeAgo(date) {
@@ -570,7 +574,7 @@
                 const dataKeys = Object.keys(fullData).filter(k => !skipFields.includes(k.toLowerCase()));
 
                 // Determine if we show "Simple" (Large Temp) or "Metric List"
-                const isComplex = dataKeys.length > 3 || dataKeys.some(k => k.includes('wind') || k.includes('rain') || k.includes('pressure'));
+                const isComplex = dataKeys.length > 3 || dataKeys.some(k => k.includes('wind') || k.includes('rain') || k.includes('pressure') || k.includes('tire'));
 
                 let mainContent = '';
                 if (!isComplex) {
@@ -592,19 +596,21 @@
                         const info = FIELD_MAP[k.toLowerCase()] || { label: k.replace(/_/g, ' '), icon: 'activity' };
                         let val = fullData[k];
                         let unit = '';
-                        if (k.includes('_C')) unit = '°C';
-                        if (k.includes('_F')) unit = '°F';
-                        if (k.includes('m_s')) unit = 'm/s';
-                        if (k.includes('deg')) unit = '°';
-                        if (k.includes('mm')) unit = 'mm';
-                        if (k.includes('hpa')) unit = ' hPa';
-                        if (k.includes('humidity')) unit = '%';
+                        const lvk = k.toLowerCase();
+                        if (lvk.includes('_c')) unit = '°C';
+                        if (lvk.includes('_f')) unit = '°F';
+                        if (lvk.includes('m_s')) unit = 'm/s';
+                        if (lvk.includes('deg')) unit = '°';
+                        if (lvk.includes('mm')) unit = 'mm';
+                        if (lvk.includes('hpa')) unit = ' hPa';
+                        if (lvk.includes('psi')) unit = ' PSI';
+                        if (lvk.includes('humidity')) unit = '%';
+                        if (lvk.includes('lux')) unit = ' lx';
 
                         return `
                                     <div class="metric-row">
                                         <div class="metric-label"><i data-lucide="${info.icon}"></i> ${info.label}</div>
                                         <div class="metric-value">${val}${unit}</div>
-                                    </div>
                                 `;
                     }).join('')}
                         </div>
