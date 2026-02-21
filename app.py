@@ -21,7 +21,7 @@ MQTT_BROKER = os.getenv('MQTT_BROKER', '192.168.1.125')
 MQTT_PORT = int(os.getenv('MQTT_PORT', 1883))
 MQTT_USER = os.getenv('MQTT_USER', '')
 MQTT_PASS = os.getenv('MQTT_PASS', '')
-MQTT_TOPIC = os.getenv('MQTT_TOPIC', 'rtl_433/+/events')
+MQTT_TOPIC = os.getenv('MQTT_TOPIC', 'rtl_433/#')
 
 def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
