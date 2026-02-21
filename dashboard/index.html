@@ -572,7 +572,7 @@
 
         async function saveSettings() {
             const settings = {};
-            ['sdr_freq', 'sdr_protocols', 'sdr_device', 'sdr_gain', 'mqtt_broker', 'mqtt_port', 'mqtt_user', 'mqtt_pass', 'mqtt_topic', 'sdr_autolevel', 'sdr_noise', 'sdr_starred'].forEach(k => {
+            ['sdr_freq', 'sdr_protocols', 'sdr_device', 'sdr_gain', 'mqtt_broker', 'mqtt_port', 'mqtt_user', 'mqtt_pass', 'mqtt_topic', 'sdr_autolevel', 'sdr_noise', 'sdr_starred', 'sdr_samplerate'].forEach(k => {
                 const el = document.getElementById(k);
                 if (el) {
                     if (el.type === 'checkbox') settings[k] = el.checked ? '1' : '0';

@@ -1,3 +1,5 @@
+import eventlet
+eventlet.monkey_patch()
 import os
 import json
 import threading
@@ -63,7 +65,8 @@ def init_db():
         ('mqtt_topic', 'rtl_433[/model][/id]'),
         ('sdr_autolevel', '1'),
         ('sdr_noise', '1'),
-        ('sdr_starred', '0')
+        ('sdr_starred', '0'),
+        ('sdr_samplerate', '1024k')
     ]
     for key, val in defaults:
         cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, val))
@@ -208,7 +211,8 @@ def sdr_worker():
                 "-F", "json",
                 "-M", "level",
                 "-M", "metadata",
-                "-M", "time:iso8601"
+                "-M", "time:iso8601",
+                "-s", get_setting('sdr_samplerate', '102k')
             ]
 
             # Sensitivity and Noise settings
