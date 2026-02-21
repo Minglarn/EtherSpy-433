@@ -292,8 +292,10 @@ def sdr_worker():
                         cmd.extend(["-R", p_item.strip()])
             elif p_clean == "all" or get_setting('sdr_starred', '0') == '1':
                 # User needs ALL protocols including those marked with * (experiment/noisy).
-                # Since -G is removed/invalid in v25.12, we explicitly enable protocols 1-296.
-                for i in range(1, 297):
+                # Since -G is removed, we enable protocols explicitly, but must skip invalid IDs.
+                # Common gaps in v25.12: 5, 9, 27, 28, 65, 66.
+                valid_ids = [i for i in range(1, 297) if i not in [5, 9, 27, 28, 65, 66]]
+                for i in valid_ids:
                     cmd.extend(["-R", str(i)])
             else:
                 # Default behavior: No -R flags means all default stable protocols are enabled.
