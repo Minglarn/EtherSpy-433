@@ -71,7 +71,7 @@ def init_db():
         ('mqtt_port', os.getenv('MQTT_PORT', '1883')),
         ('mqtt_user', os.getenv('MQTT_USER', '')),
         ('mqtt_pass', os.getenv('MQTT_PASS', '')),
-        ('mqtt_topic', 'rtl_433[/model][/id][/channel][/address]'),
+        ('mqtt_topic', 'rtl_433[/model][/channel][/id]'),
         ('sdr_autolevel', '1'),
         ('sdr_noise', '1'),
         ('sdr_starred', '0'),
@@ -82,9 +82,14 @@ def init_db():
     for key, val in defaults:
         cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, val))
     
-    # Migration: Update old default topic to new better one that includes fallback fields
-    new_topic = 'rtl_433[/model][/id][/channel][/address][/housecode]'
-    cursor.execute("UPDATE settings SET value = ? WHERE key = 'mqtt_topic' AND value IN ('rtl_433[/model][/id]', 'rtl_433[/model][/id][/channel][/address]')", (new_topic,))
+    # Migration: Update old faulty or limited templates to the new working standard
+    new_topic = 'rtl_433[/model][/channel][/id]'
+    faulty_templates = [
+        'rtl_433[/model][/id]',
+        'rtl_433[/model][/id][/channel][/address]',
+        'rtl_433[/model][/id][/channel][/address][/housecode]'
+    ]
+    cursor.execute("UPDATE settings SET value = ? WHERE key = 'mqtt_topic' AND value IN ({})".format(','.join(['?']*len(faulty_templates))), [new_topic] + faulty_templates)
     
     conn.commit()
     conn.close()
@@ -260,7 +265,7 @@ def sdr_worker():
             port = get_setting('mqtt_port', '1883')
             user = get_setting('mqtt_user', '')
             pw = get_setting('mqtt_pass', '')
-            topic = get_setting('mqtt_topic', 'rtl_433[/model][/id][/channel][/address][/housecode]')
+            topic = get_setting('mqtt_topic', 'rtl_433[/model][/channel][/id]')
 
             # Heuristic: Fix serial ID if user forgot the colon
             if len(device) > 2 and not device.startswith(':') and not device.isdigit():

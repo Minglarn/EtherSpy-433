@@ -649,6 +649,19 @@
                         * Auto-Sensitivity (autolevel) optimerar signaltröskeln i mjukvaran för bättre räckvidd.
                     </div>
                 </div>
+
+                <div
+                    style="background: rgba(239, 68, 68, 0.1); border-left: 3px solid var(--danger); padding: 0.8rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.85rem;">
+                    <div
+                        style="display: flex; align-items: center; gap: 0.6rem; color: var(--danger); font-weight: 600; margin-bottom: 0.3rem;">
+                        <i data-lucide="alert-triangle" style="width: 16px;"></i>
+                        Varning: Protokoll-val
+                    </div>
+                    <p style="color: rgba(255,255,255,0.7); line-height: 1.4; margin: 0;">
+                        Att aktivera "alla" protokoll ökar risken för falska sensorer och konflikter. Det drar även mer
+                        CPU. Välj bara de du faktiskt behöver för bäst stabilitet.
+                    </p>
+                </div>
                 <div class="form-group" style="margin-top: 1rem; margin-bottom: 0;">
                     <label>Stale Threshold (minutes)</label>
                     <input type="number" id="sdr_stale_threshold" min="1" max="1440">
@@ -690,7 +703,7 @@
 
             <div class="form-group">
                 <label>MQTT Topic Template</label>
-                <input type="text" id="mqtt_topic" placeholder="rtl_433[/model][/id][/channel][/address][/housecode]">
+                <input type="text" id="mqtt_topic" placeholder="rtl_433[/model][/channel][/id]">
             </div>
 
             <div class="modal-actions" style="display: flex; gap: 1rem; margin-top: 2rem;">
