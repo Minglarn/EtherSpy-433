@@ -682,7 +682,43 @@
         </div>
     </div>
 
+    <!-- Protocol Selector Modal -->
+    <div class="modal" id="protocolModal" style="z-index: 1100;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="search-container">
+                <h2 style="margin-bottom: 1rem; font-size: 1.3rem; font-weight: 600;">Välj Protokoll</h2>
+                <div style="position: relative;">
+                    <i data-lucide="search"
+                        style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; opacity: 0.5;"></i>
+                    <input type="text" id="protocolSearch" placeholder="Sök namn eller nummer..."
+                        oninput="filterProtocols()" style="padding-left: 2.5rem;">
+                </div>
+            </div>
+
+            <div id="protocolList" class="protocol-list">
+                <!-- Dynamic Content -->
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+                <div style="display: flex; gap: 0.8rem;">
+                    <button class="btn-text" onclick="selectAllProtocols(true)"
+                        style="font-size: 0.85rem; color: var(--accent-color); background: none; border: none; cursor: pointer;">Alla</button>
+                    <button class="btn-text" onclick="selectAllProtocols(false)"
+                        style="font-size: 0.85rem; color: var(--danger); background: none; border: none; cursor: pointer;">Inga</button>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-secondary" onclick="toggleProtocolModal(false)">Avbryt</button>
+                    <button class="btn btn-primary" onclick="applyProtocolSelection()">Använd Valda</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        const PROTOCOL_DB = [
+            [1, "Silvercrest Remote Control"], [2, "Rubicson, TFA 30.3197/InFactory PT-310"], [3, "Prologue FreeTec NC-7104/7159-675"], [4, "Waveman Switch Transmitter"], [6, "ELV EM 1000"], [7, "ELV WS 2000"], [8, "LaCrosse TX Temp/Hum"], [10, "Acurite 896 Rain Gauge"], [11, "Acurite 609TXC Temp/Hum"], [12, "Oregon Scientific Weather"], [13, "Mebus 433"], [14, "Intertechno 433"], [15, "KlikAanKlikUit Switch"], [16, "AlectoV1 Weather (WS3500/4500)"], [17, "Cardin S466-TX2"], [18, "Fine Offset Electronics WH2/WH5"], [19, "Nexus FreeTec NC-7345/NX-3980"], [20, "Ambient Weather F007TH/TFA 30.3208"], [21, "Calibeur RF-104 Sensor"], [22, "X10 RF"], [23, "DSC Security Contact"], [24, "Brennenstuhl RCS 2044"], [25, "Globaltronics GT-WT-02"], [26, "Danfoss CFR Thermostat"], [29, "Chuango Security Technology"], [30, "Generic Remote SC226x EV1527"], [31, "TFA-Twin-Plus/Conrad KW9010"], [32, "Fine Offset Electronics WH1080/3080"], [33, "WT450, WT260H, WT405H"], [34, "LaCrosse WS-2310/3600"], [35, "Esperanza EWS"], [36, "Efergy e2 classic"], [37, "Inovalley kw9015b/TFA 30.3161"], [38, "Generic temperature sensor 1"], [39, "WG-PB12V1 Temp Sensor"], [40, "Acurite 592TXR/Atlas/Leak"], [41, "Acurite 986 Fridge/Freezer"], [42, "HIDEKI TS04 Weather Sensor"], [43, "Watchman Sonic/Apollo Ultrasonic"], [44, "CurrentCost Current Sensor"], [45, "emonTx OpenEnergyMonitor"], [46, "HT680 Remote control"], [47, "Conrad S3318P/FreeTec NC-5849"], [48, "Akhan 100F14 RKE"], [49, "Quhwa"], [50, "OSv1 Temp Sensor"], [51, "Proove/Nexa/KlikAanKlikUit"], [52, "Bresser Thermo/Hygro 3CH"], [53, "Springfield Temp/Soil Moisture"], [54, "Oregon Scientific SL109H"], [55, "Acurite 606TX/Technoline TX960"], [56, "TFA pool temp sensor"], [57, "Kedsum Temp/Hum / Pearl NC-7415"], [58, "Blyss DC5-UK-WH"], [59, "Steelmate TPMS"], [60, "Schrader TPMS"], [61, "LightwaveRF"], [62, "Elro DB286A Doorbell"], [63, "Efergy Optical"], [64, "Honda Car Key"], [67, "Radiohead ASK"], [68, "Kerui PIR/Contact Sensor"], [69, "Fine Offset WH1050 Weather"], [70, "Honeywell Door/Window Sensor"], [71, "Maverick ET-732/733 BBQ"], [72, "RF-tech"], [73, "LaCrosse TX141/TX145"], [74, "Acurite 00275rm/00276rm"], [75, "LaCrosse TX35DTH-IT/TFA 30.3155"], [76, "LaCrosse TX29IT/TFA 30.3159"], [77, "Vaillant calorMatic VRT340f"], [78, "Fine Offset WH25/32/65B"], [79, "Fine Offset WH0530 Temp/Rain"], [80, "IBIS beacon"], [81, "Oil Ultrasonic STANDARD FSK"], [82, "Citroen TPMS"], [83, "Oil Ultrasonic STANDARD ASK"], [84, "Thermopro TP11 Thermometer"], [85, "Solight TE44/66/EMOS E0107T"], [86, "Wireless Smoke/Heat GS 558"], [87, "Generic motion sensor"], [88, "Toyota TPMS"], [89, "Ford TPMS"], [90, "Renault TPMS"], [91, "inFactory/Nor-tec/FreeTec"], [92, "FT-004-B Temp Sensor"], [93, "Ford Car Key"], [94, "Philips outdoor temp (AJ3650)"], [95, "Schrader TPMS (Saab/Opel)"], [96, "Nexa"], [97, "ThermoPro TP08/12/20"], [98, "GE Color Effects"], [99, "X10 Security"], [100, "Interlogix GE UTC Security"], [101, "Dish remote 6.3"], [102, "SimpliSafe Home Security"], [103, "Sensible Living Plant Moisture"], [104, "Wireless M-Bus C&T (868.95M)"], [105, "Wireless M-Bus S (868.3M)"], [106, "Wireless M-Bus R (868.33M)"], [107, "Wireless M-Bus F (2.4kbps)"], [108, "Hyundai WS SENZOR"], [109, "WT0124 Pool Thermometer"], [110, "PMV-107J (Toyota) TPMS"], [111, "Emos TTX201 Temp Sensor"], [112, "Ambient Weather TX-8300"], [113, "Ambient Weather WH31E/WS68"], [114, "Maverick ET73"], [115, "Honeywell ActivLink Doorbell"], [116, "Honeywell ActivLink (FSK)"], [117, "ESA1000/ESA2000 Energy"], [118, "Biltema rain gauge"], [119, "Bresser Weather Center 5-in-1"], [120, "Digitech XC-0324/Ambient FT005"], [121, "Opus/Imagintronix XT300 Soil"], [122, "FS20 / FHT"], [123, "Jansite TPMS TY02S"], [124, "LaCrosse/ELV WS7000/2500"], [125, "TS-FT002 Tank Liquid Level"], [126, "Companion WTR001 Temp"], [127, "Ecowitt Outdoor WH53/WH0280"], [128, "DirecTV RC66RX Remote"], [129, "Eurochron Temp/Hum sensor"], [130, "IKEA Sparsnas Energy Meter"], [131, "Microchip HCS200/300 KeeLoq"], [132, "TFA Dostmann 30.3196 T/H"], [133, "Rubicson 48659 Thermometer"], [134, "AOK/Holman WS5029"], [135, "Philips outdoor temp (AJ7010)"], [136, "ESIC EMT7110 power meter"], [137, "Globaltronics QUIGG GT-TMBBQ-05"], [138, "Globaltronics GT-WT-03"], [139, "Norgo NGE101"], [140, "Elantra2012 TPMS"], [141, "Auriol HG02832/Rubicson 48957"], [142, "Fine Offset WH51/Soil Moisture"], [143, "Holman iWeather WS5029 (PWM)"], [144, "TBH weather sensor"], [145, "WS2032 weather station"], [146, "Auriol AFW2A1 Temp/Hum"], [147, "TFA Drop Rain Gauge 30.3233"], [148, "DSC Security Contact (WS4945)"], [149, "ERT Standard Consumption (SCM)"], [150, "Klimalogg"], [151, "Visonic powercode"], [152, "Eurochron EFTH-800 Temp/Hum"], [153, "Cotech 36-7959 / SwitchDoc FT020T"], [154, "Standard Consumption (SCMplus)"], [155, "Fine Offset WH1080/3080 (FSK)"], [156, "Abarth 124 Spider TPMS"], [157, "Missil ML0757 weather station"], [158, "Sharp SPC775 weather station"], [159, "Insteon"], [160, "ERT Interval Data (IDM)"], [161, "ERT Interval Data (Net)"], [162, "ThermoPro-TX2 temp sensor"], [163, "Acurite 590TX Temperature"], [164, "Security+ 2.0 (Keyfob)"], [165, "TFA 30.3221.02 T/H Sensor"], [166, "LaCrosse View LTV-WSDTH01"], [167, "Somfy RTS"], [168, "Schrader TPMS (Subaru/Nissan)"], [169, "Nice Flor-s gate remote"], [170, "LaCrosse View LTV-WR1 Multi"], [171, "LaCrosse View LTV-TH Sensor"], [172, "Bresser W.C. 6-in-1/7-in-1"], [173, "Bresser W.C. PM2.5/CO2 sensors"], [174, "EcoDHOME Smart Socket"], [175, "LaCrosse View LTV-R1 Rain"], [176, "BlueLine Power Cost Monitor"], [177, "Burnhard BBQ thermometer"], [178, "Security+ (Keyfob)"], [179, "Cavius smoke/heat/water detector"], [180, "Jansite TPMS Model Solar"], [181, "Amazon Basics Meat Thermometer"], [182, "TFA Marbella Pool Thermometer"], [183, "Auriol AHFL Temp/Hum Sensor"], [184, "Auriol AFT 77 B2 Temp Sensor"], [185, "Honeywell CM921 Thermostat"], [186, "Hyundai TPMS (VDO)"], [187, "RojaFlex shutter/remote"], [188, "Marlec Solar iBoost+ sensors"], [189, "Somfy io-homecontrol"], [190, "Ambient WH31L Lightning"], [191, "Markisol/BOFU curtain remote"], [192, "Govee Leak H5054/Door B5023"], [193, "Clipsal CMR113 power meter"], [194, "Inkbird ITH-20R Temp/Hum"], [195, "RainPoint soil moisture sensor"], [196, "Atech-WS308 temp sensor"], [197, "Acurite Grill 01185M"], [198, "EnOcean ERP1"], [199, "Linear Megacode Garage Remote"], [200, "Auriol LD5661/5972/6313"], [201, "Unbranded SolarTPMS (Trucks)"], [202, "Funkbus (Berker, Gira, Jung)"], [203, "Porsche Boxster/Cayman TPMS"], [204, "Jasco/GE Choice Alert Security"], [205, "Telldus FT0385R sensors"], [206, "LaCrosse TX34-IT rain gauge"], [207, "SmartFire Proflame 2 remote"], [208, "AVE TPMS"], [209, "SimpliSafe Gen 3 Security"], [210, "Yale HSA/YES-Alarmkit"], [211, "Regency Fan (-f 303.8M)"], [212, "Renault 0435R TPMS"], [213, "Fine Offset WS80 station"], [214, "EMOS E6016 weather+DCF77"], [215, "Emax W6/OTIO 810025 Station"], [216, "ANT and ANT+ devices"], [217, "EMOS E6016 rain gauge"], [218, "Microchip HCS200/300 (FSK)"], [219, "Fine Offset WH45 air quality"], [220, "Maverick XR-30 BBQ Sensor"], [221, "EcoWitt WN34S/L/D temp"], [222, "Rubicson Pool Thermometer"], [223, "Badger ORION (916.45M)"], [224, "GEO minim+ energy monitor"], [225, "TyreGuard 400 TPMS"], [226, "Kia TPMS (-s 1000k)"], [227, "SRSmith Pool Light (915M)"], [228, "Neptune R900 flow meters"], [229, "WEC-2103 Temp/Hum sensor"], [230, "Vauno EN8822C"], [231, "Govee Water Leak H5054"], [232, "TFA Grill Thermometer 14.1504.V2"], [233, "CED7000 Shot Timer"], [234, "Watchman Sonic Advanced"], [235, "Oil Ultrasonic SMART FSK"], [236, "Gasmate BA1008 meat thermometer"], [237, "Flowis flow meters"], [238, "Wireless M-Bus T (868.3M)"], [239, "Revolt NC-5642 Energy Meter"], [240, "LaCrosse TX31U-IT"], [241, "EezTire/Carchet TPMS"], [242, "Baldr / RainPoint rain gauge"], [243, "Celsia CZC1 Thermostat"], [244, "Fine Offset WS90 weather"], [245, "ThermoPro TX-2C sensor"], [246, "TFA 30.3151 Weather Station"], [247, "Bresser water leakage"], [248, "Nissan TPMS"], [249, "Bresser lightning"], [250, "Schou 72543 / MTX Rain Gauge"], [251, "EcoWitt WH55 water leak"], [252, "BMW/Audi TPMS Pressure Alert"], [253, "Watts WFHT-RF Thermostat"], [254, "Thermor DG950 weather station"], [255, "Mueller Hot Rod water meter"], [256, "ThermoPro TP28b BBQ Smoke"], [257, "BMW Gen2 and Gen3 TPMS"], [258, "Chamberlain CWPIRC PIR"], [259, "ThermoPro TP829B sensors"], [260, "Arad/Master Meter Dialog3G"], [261, "Geevon TX16-3 outdoor sensor"], [262, "Fine Offset WH46 air quality"], [263, "Vevor 7-in-1 Weather Station"], [264, "Arexx Multilogger IP-HA90"], [265, "Rosstech Sundance/Jacuzzi"], [266, "Risco 2 Way Agility"], [267, "ThermoPro TP828B probes"], [268, "Bresser ST1005H Sensor"], [269, "DeltaDore X3D devices"], [270, "Quinetic"], [271, "Landis & Gyr Gridstream 9.6k"], [272, "Landis & Gyr Gridstream 19.2k"], [273, "Landis & Gyr Gridstream 38.4k"], [274, "Revolt ZX-7717 power meter"], [275, "GM-Aftermarket TPMS"], [276, "RainPoint HCS012ARF Rain"], [277, "Apator Metra E-RM 30 water"], [278, "ThermoPro TX-7B Temp/Hygro"], [279, "Nexus/CRX Sauna temp sensor"], [280, "Homelead HG9901 Soil Sensor"], [281, "Maverick XR-50 BBQ Sensor"], [282, "Orion Endpoint (904-924M)"], [283, "Fine Offset WH43 air quality"], [284, "Baldr E0666TH Thermo-Hygro"], [285, "bm5-v2 12V Battery Monitor"], [286, "Universal 24V Fan Controller"], [287, "Fine Offset WS85 station"], [288, "Oria WA150KM fridge temp"], [289, "Voltcraft ec3k"], [290, "Orion Endpoint GIF2020OCECNA"], [291, "Geevon TX19-1 sensor"], [292, "WallarGe CLTX001 Sensor"], [293, "Sainlogic/Gevanti SA8"], [294, "ThermoPro TP862b TempSpike"], [295, "Airpuxem TPMS TYH11_EU6"], [296, "Apator Metra E-ITN 30 heat"]
+        ];
+
         const sensorGrid = document.getElementById('sensorGrid');
         const lostGrid = document.getElementById('lostGrid');
         const modal = document.getElementById('settingsModal');
@@ -692,6 +728,66 @@
         let trendStore = {}; // { sensorId: { key: 'up'|'down' } }
         let expandedCards = new Set();
         let currentQuickFilter = 'all';
+
+        const toggleProtocolModal = (show) => {
+            document.getElementById('protocolModal').style.display = show ? 'flex' : 'none';
+            if (show) {
+                document.getElementById('protocolSearch').value = '';
+                renderProtocolList();
+            }
+        };
+
+        const renderProtocolList = () => {
+            const list = document.getElementById('protocolList');
+            const search = document.getElementById('protocolSearch').value.toLowerCase();
+            const current = document.getElementById('sdr_protocols').value.split(',').map(s => s.trim());
+
+            const filtered = PROTOCOL_DB.filter(p =>
+                p[0].toString().includes(search) || p[1].toLowerCase().includes(search)
+            );
+
+            list.innerHTML = filtered.map(p => `
+                <div class="protocol-item" onclick="toggleProtocolCheck(${p[0]})">
+                    <input type="checkbox" id="p-check-${p[0]}" ${current.includes(p[0].toString()) ? 'checked' : ''} onclick="event.stopPropagation()">
+                    <span class="id-label">[${p[0].toString().padStart(2, '0')}]</span>
+                    <span class="name-label">${p[1]}</span>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        };
+
+        const toggleProtocolCheck = (id) => {
+            const cb = document.getElementById(`p-check-${id}`);
+            if (cb) cb.checked = !cb.checked;
+        };
+
+        const filterProtocols = () => renderProtocolList();
+
+        const selectAllProtocols = (val) => {
+            const checkboxes = document.querySelectorAll('#protocolList input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = val);
+        };
+
+        const openProtocolSelector = () => toggleProtocolModal(true);
+
+        const applyProtocolSelection = () => {
+            const input = document.getElementById('sdr_protocols');
+            const currentSelected = new Set(input.value.split(',').filter(s => s.trim()).map(s => s.trim()));
+
+            const listItems = document.querySelectorAll('#protocolList .protocol-item');
+            listItems.forEach(item => {
+                const cb = item.querySelector('input');
+                const idLabel = item.querySelector('.id-label').textContent;
+                const id = idLabel.replace('[', '').replace(']', '').replace(/^0+/, '') || "0";
+                const cleanId = parseInt(id).toString();
+                if (cb.checked) currentSelected.add(cleanId);
+                else currentSelected.delete(cleanId);
+            });
+
+            input.value = Array.from(currentSelected).sort((a, b) => parseInt(a) - parseInt(b)).join(',');
+            toggleProtocolModal(false);
+        };
 
         function setQuickFilter(f) {
             currentQuickFilter = f;
