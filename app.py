@@ -212,7 +212,7 @@ def sdr_worker():
                 "-M", "level",
                 "-M", "metadata",
                 "-M", "time:iso8601",
-                "-s", get_setting('sdr_samplerate', '102k')
+                "-s", get_setting('sdr_samplerate', '1024k')
             ]
 
             # Sensitivity and Noise settings

@@ -474,14 +474,24 @@
                 <label>Frequency (e.g. 433.92M)</label>
                 <input type="text" id="sdr_freq">
             </div>
-            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
                 <div class="form-group">
-                    <label>SDR Device (Serial ID)</label>
-                    <input type="text" id="sdr_device">
+                    <label>SDR Device</label>
+                    <input type="text" id="sdr_device" placeholder=":0">
                 </div>
                 <div class="form-group">
                     <label>Gain (auto/dB)</label>
                     <input type="text" id="sdr_gain">
+                </div>
+                <div class="form-group">
+                    <label>Sample Rate</label>
+                    <select id="sdr_samplerate"
+                        style="width: 100%; background: var(--input-bg); border: 1px solid var(--input-border); color: white; padding: 0.8rem; border-radius: 10px;">
+                        <option value="250k">250k</option>
+                        <option value="1024k">1024k</option>
+                        <option value="2048k">2048k</option>
+                        <option value="2400k">2400k (MAX)</option>
+                    </select>
                 </div>
             </div>
             <div class="form-group"
