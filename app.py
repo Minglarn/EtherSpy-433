@@ -412,6 +412,37 @@ def serve_index():
 def serve_static(path):
     return send_from_directory(app.static_folder, path)
 
+@app.route('/api/delete_sensor', methods=['POST'])
+def delete_sensor():
+    data = request.json
+    uid = data.get('uid', '')
+    if not uid:
+        return jsonify({"status": "error", "message": "No UID provided"}), 400
+    
+    try:
+        # UID format is brand:model:sensor_id
+        parts = uid.split(':')
+        if len(parts) < 3:
+            return jsonify({"status": "error", "message": "Invalid UID format"}), 400
+            
+        brand = parts[0]
+        model = parts[1]
+        sensor_id = parts[2]
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM sensors_data WHERE brand = ? AND model = ? AND sensor_id = ?", (brand, model, sensor_id))
+        conn.commit()
+        
+        # Consistent emission using the utility
+        all_sensors = get_latest_sensors(conn)
+        socketio.emit('new_data', all_sensors)
+        
+        conn.close()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 if __name__ == '__main__':
     init_db()
     # Use socketio.start_background_task for better compatibility with eventlet

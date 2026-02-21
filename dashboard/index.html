@@ -892,6 +892,24 @@
             fetchSensorData();
         }
 
+        async function deleteSensor(uid) {
+            if (!confirm("Är du säker på att du vill radera denna sensor och all dess historik från databasen?")) return;
+            try {
+                const response = await fetch('/api/delete_sensor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uid: uid })
+                });
+                const result = await response.json();
+                if (result.status !== 'success') {
+                    alert("Fel vid radering: " + result.message);
+                }
+            } catch (err) {
+                console.error("Delete failed:", err);
+                alert("Kunde inte kontakta servern.");
+            }
+        }
+
         function renderSensors(sensors) {
             window.lastSensors = sensors;
             if (!sensors) return;
@@ -1008,15 +1026,24 @@
                     // Content helper
                     const getMetricsHtml = () => visibleKeys.map(k => row(k, full[k])).join('');
                     const getHeaderHtml = () => `
-                        <span class="sensor-id">#${s.sensor_id}</span>
-                        <div style="display: flex; align-items: center; gap: 0.6rem;">
-                            <span class="update-badge" title="Antal uppdateringar">
-                                <i data-lucide="refresh-cw" style="width: 10px; opacity: 0.7;"></i>
-                                ${s.update_count || 1}
-                            </span>
-                            <div class="last-seen">
-                                <div class="status-dot ${updated ? 'status-online' : 'status-stale'}"></div>
-                                ${timeAgo(s.timestamp + "Z")}
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <span class="sensor-id">#${s.sensor_id}</span>
+                            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                <span class="update-badge" title="Antal uppdateringar">
+                                    <i data-lucide="refresh-cw" style="width: 10px; opacity: 0.7;"></i>
+                                    ${s.update_count || 1}
+                                </span>
+                                <div class="last-seen">
+                                    <div class="status-dot ${updated ? 'status-online' : 'status-stale'}"></div>
+                                    ${timeAgo(s.timestamp + "Z")}
+                                </div>
+                                <button onclick="event.stopPropagation(); deleteSensor('${s.uid}')" 
+                                    style="background: none; border: none; color: var(--danger); cursor: pointer; padding: 0.2rem; display: flex; align-items: center; opacity: 0.4; transition: all 0.2s;"
+                                    onmouseover="this.style.opacity=1; this.style.transform='scale(1.1)'" 
+                                    onmouseout="this.style.opacity=0.4; this.style.transform='scale(1)'" 
+                                    title="Radera sensor">
+                                    <i data-lucide="x-circle" style="width: 16px;"></i>
+                                </button>
                             </div>
                         </div>
                     `;
