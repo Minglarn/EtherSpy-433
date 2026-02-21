@@ -186,7 +186,8 @@ def sdr_worker():
                 mqtt_dest = f"mqtt://{broker}:{port}"
                 if user: mqtt_dest += f",user={user}"
                 if pw: mqtt_dest += f",pass={pw}"
-                mqtt_dest += ",retain=0,devices=rtl_433[/model][/id]"
+                # Using 'events=' ensures single JSON messages instead of split topics
+                mqtt_dest += ",retain=0,events=rtl_433[/model][/id]"
                 cmd.extend(["-F", mqtt_dest])
 
             # Handle protocols safely

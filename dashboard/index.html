@@ -408,29 +408,88 @@
             alert("Settings applied. SDR stack is restarting...");
         }
 
+        function timeAgo(date) {
+            const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+            if (seconds < 5) return "Just now";
+            if (seconds < 60) return seconds + "s ago";
+            if (seconds < 3600) return Math.floor(seconds / 60) + "m ago";
+            return Math.floor(seconds / 3600) + "h ago";
+        }
+
         function renderSensors(sensors) {
             if (!sensors || sensors.length === 0) {
                 sensorGrid.innerHTML = '<div class="card" style="grid-column: 1/-1; text-align: center;"><p>No sensors detected. Check settings or wait for traffic...</p></div>';
                 return;
             }
 
-            sensorGrid.innerHTML = sensors.map(s => `
-                <div class="card">
-                    <div class="card-header">
-                        <span class="sensor-tag">${s.brand} ${s.model}</span>
-                        <span class="sensor-tag" style="color: rgba(255,255,255,0.4)">ID: ${s.sensor_id}</span>
-                    </div>
-                    <div class="value-display">
-                        ${s.temperature_c !== null ? s.temperature_c : '--'}<span class="unit">°C</span>
-                    </div>
-                    <div class="sub-data">
-                        <div class="data-item">${s.humidity !== null ? s.humidity + '%' : '--%'} Humidity</div>
-                        <div class="data-item" style="color: ${s.battery_ok ? 'var(--success)' : 'var(--danger)'}">
-                            Battery ${s.battery_ok ? 'OK' : 'LOW'}
+            sensorGrid.innerHTML = sensors.map(s => {
+                let fullData = {};
+                try {
+                    fullData = JSON.parse(s.raw_json);
+                } catch (e) {
+                    fullData = { temperature_C: s.temperature_c, humidity: s.humidity };
+                }
+
+                // Filter out metadata and already handled fields for the list
+                const skipFields = ['time', 'model', 'id', 'brand', 'channel', 'battery_ok', 'mic', 'mod', 'freq', 'rssi', 'snr', 'noise'];
+                const dynamicFields = Object.keys(fullData)
+                    .filter(key => !skipFields.includes(key.toLowerCase()))
+                    .map(key => {
+                        let val = fullData[key];
+                        let label = key.replace(/_/g, ' ').toUpperCase();
+                        let unit = '';
+                        if (key.includes('_C')) unit = '°C';
+                        if (key.includes('m_s')) unit = ' m/s';
+                        if (key.includes('deg')) unit = '°';
+                        if (key.includes('humidity')) unit = '%';
+                        if (key.includes('mm')) unit = ' mm';
+
+                        return `
+                            <div class="data-item">
+                                <span style="font-size: 0.7rem; display: block; opacity: 0.5;">${label}</span>
+                                <span style="font-size: 1.1rem; color: #fff;">${val}${unit}</span>
+                            </div>
+                        `;
+                    }).join('');
+
+                const lastSeen = timeAgo(s.timestamp + "Z"); // Add Z for UTC if needed, or adjust to local
+
+                return `
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="sensor-tag">${s.brand || 'Generic'}</div>
+                                <div style="font-size: 1.1rem; font-weight: 600;">${s.model || 'Unknown Device'}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="sensor-tag" style="opacity: 0.4;">ID: ${s.sensor_id}</div>
+                                <div style="font-size: 0.7rem; color: var(--accent-color);">${lastSeen}</div>
+                            </div>
+                        </div>
+
+                        <div class="main-display" style="display: flex; align-items: center; justify-content: space-between; margin: 1rem 0;">
+                            <div class="value-display" style="margin:0;">
+                                ${fullData.temperature_C !== undefined ? fullData.temperature_C : '--'}<span class="unit">°C</span>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.2rem; opacity: 0.8;">${fullData.humidity !== undefined ? fullData.humidity + '%' : '--%'}</div>
+                                <div style="font-size: 0.7rem; opacity: 0.5;">HUMIDITY</div>
+                            </div>
+                        </div>
+
+                        <div class="dynamic-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                            ${dynamicFields}
+                        </div>
+
+                        <div class="card-footer" style="padding-top: 0.5rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+                            <span style="color: ${s.battery_ok ? 'var(--success)' : 'var(--danger)'}">
+                                ${s.battery_ok ? '● Battery OK' : '● Battery LOW'}
+                            </span>
+                            <span style="opacity: 0.3;">Channel ${s.channel || 0}</span>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         fetchSensorData();
