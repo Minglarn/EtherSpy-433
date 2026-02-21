@@ -40,16 +40,15 @@ Start the service:
 docker-compose up -d
 ```
 
-### 4. Standalone Backend (Python/Flask)
-The backend is now a standalone Python/Flask application containerized within the Docker stack. It serves the Premium Dashboard and the data API.
+### 4. SDR Signal Receiver & Storage
+The system connects to an **external MQTT Broker** (default: `192.168.1.125`) to receive sensor data. This data is persisted locally in a **SQLite database** (`data/etherspy.db`).
 
-### 5. Web UI & Visualization
+### 5. Web UI
 - **Premium Dashboard:** Access at `http://localhost:5000`. This is the primary standalone interface for viewing live sensor data.
 
 ## Project Structure
-- `docker-compose.yml`: Full stack orchestration (SDR, Backend, DB, MQTT).
-- `app.py`: Flask backend and static file server.
-- `Dockerfile`: Multi-stage build for the standalone backend.
+- `docker-compose.yml`: Slim stack (SDR + Backend).
+- `app.py`: Flask backend, MQTT subscriber, and SQLite handler.
+- `Dockerfile`: Containerizes the backend.
 - `dashboard/`: Custom Web UI assets.
-- `init.sql`: MariaDB schema.
-- `mosquitto.conf`: MQTT broker configuration.
+- `data/`: Persistent SQLite database storage (Volumes).
