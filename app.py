@@ -133,6 +133,7 @@ def save_to_db(data):
             GROUP BY s1.sensor_id
         """)
         all_sensors = [dict(row) for row in cursor.fetchall()]
+        print(f"Backend: Emitting {len(all_sensors)} sensors via Socket.IO")
         socketio.emit('new_data', all_sensors)
         
         conn.close()
@@ -239,12 +240,11 @@ def sdr_worker():
                 for p in protocols.split(','):
                     cmd.extend(["-R", p.strip()])
             else:
-                # If starred protocols are requested, add them explicitly. 
-                # Note: -G is deprecated, omitting it enables all standard protocols by default.
+                # Use -R all for EVERYTHING (standards + starred)
+                # Note: -G is removed in newer versions, -R all is the replacement.
                 if get_setting('sdr_starred', '0') == '1':
-                    starred = ["6", "7", "13", "14", "24", "37", "48", "61", "62", "64", "72", "86", "101", "106", "107", "117", "118", "123", "129", "150", "162", "169", "198", "200", "216", "233", "242", "245", "248", "260"]
-                    for sp in starred:
-                        cmd.extend(["-R", sp])
+                    cmd.extend(["-R", "all"])
+                # If starred is off, we pass NO -R flags, which enables all default decoders.
             
             print(f"Starting SDR: {' '.join(cmd)}")
             process_env = os.environ.copy()
@@ -359,8 +359,7 @@ def serve_static(path):
 
 if __name__ == '__main__':
     init_db()
-    sdr_thread = threading.Thread(target=sdr_worker, daemon=True)
-    sdr_thread.start()
-    mqtt_thread = threading.Thread(target=mqtt_subscriber, daemon=True)
-    mqtt_thread.start()
+    # Use socketio.start_background_task for better compatibility with eventlet
+    socketio.start_background_task(sdr_worker)
+    socketio.start_background_task(mqtt_subscriber)
     socketio.run(app, host='0.0.0.0', port=5000)

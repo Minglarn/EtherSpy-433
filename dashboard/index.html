@@ -758,10 +758,21 @@
 
         socket.on('connect', () => {
             console.log('Connected to Live Data Stream');
+            const indicator = document.getElementById('liveIndicator');
+            if (indicator) {
+                indicator.innerHTML = '<span class="status-dot status-online"></span> LIVE';
+            }
+        });
+
+        socket.on('disconnect', () => {
+            const indicator = document.getElementById('liveIndicator');
+            if (indicator) {
+                indicator.innerHTML = '<span class="status-dot status-offline"></span> OFFLINE';
+            }
         });
 
         socket.on('new_data', (data) => {
-            console.log('Live update received');
+            console.log(`Live update: received ${data.length} sensors`);
             renderSensors(data);
         });
 
