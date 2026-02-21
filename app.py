@@ -290,13 +290,13 @@ def sdr_worker():
                 for p_item in protocols.split(','):
                     if p_item.strip():
                         cmd.extend(["-R", p_item.strip()])
-            elif p_clean == "all":
-                # In version 25.12+, -G and -R all are removed/invalid. 
-                # Omitting -R altogether enables all default stable protocols.
-                pass 
+            elif p_clean == "all" or get_setting('sdr_starred', '0') == '1':
+                # User needs ALL protocols including those marked with * (experiment/noisy).
+                # Since -G is removed/invalid in v25.12, we explicitly enable protocols 1-296.
+                for i in range(1, 297):
+                    cmd.extend(["-R", str(i)])
             else:
-                # Same for 'starred' toggle - we can't easily 'enable all' anymore without -G.
-                # We'll just fall back to defaults to keep the engine running.
+                # Default behavior: No -R flags means all default stable protocols are enabled.
                 pass
             
             print(f"Starting SDR: {' '.join(cmd)}")

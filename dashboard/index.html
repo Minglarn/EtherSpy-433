@@ -815,25 +815,36 @@
                         return `<div class="metric-row"><div class="metric-label"><i data-lucide="${c.icon}"></i> ${c.label}</div><div class="metric-value">${v}${trend(k, v)}</div></div>`;
                     };
 
+                    const isCelsius = document.getElementById('sdr_celsius')?.checked;
                     const EXCLUDE = ['time', 'brand', 'model', 'id', 'sensor_id', 'raw_json', 'timestamp', 'alias', 'battery_ok', 'uid'];
-                    const keys = Object.keys(full).filter(k => !EXCLUDE.includes(k.toLowerCase()));
+
+                    const keys = Object.keys(full).filter(k => {
+                        const kl = k.toLowerCase();
+                        if (EXCLUDE.includes(kl)) return false;
+                        // Hide Fahrenheit if Celsius mode is on and we have a C equivalent
+                        // Handle both "Temperature_F" and "Temperature F"
+                        if (isCelsius && (kl.endsWith('_f') || kl.endsWith(' f'))) {
+                            const base = kl.replace(/(_f| f)$/i, '');
+                            if (full[base + '_c'] !== undefined || full[base + ' c'] !== undefined || full[base + 'c'] !== undefined) return false;
+                        }
+                        return true;
+                    });
+
                     const isExpanded = expandedCards.has(s.uid);
                     const visibleKeys = isExpanded ? keys : keys.slice(0, 4);
                     const hasMore = keys.length > 4;
 
-                    const cardHtml = `
-                        <div class="card-header"><span class="sensor-id">#${s.sensor_id}</span><div class="last-seen"><div class="status-dot ${updated ? 'status-online' : 'status-stale'}"></div>${timeAgo(s.timestamp + "Z")}</div></div>
-                        <h3>${s.alias || cleanName(s.brand + ' ' + s.model)} <i data-lucide="edit-3" style="width:12px;opacity:0.3"></i></h3>
-                        <div class="simple-metrics" style="margin-top: 0.4rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.7rem;">
-                            ${visibleKeys.map(k => row(k, full[k])).join('')}
-                        </div>
-                        ${hasMore ? `
+                    // Content helper
+                    const getMetricsHtml = () => visibleKeys.map(k => row(k, full[k])).join('');
+                    const getHeaderHtml = () => `<span class="sensor-id">#${s.sensor_id}</span><div class="last-seen"><div class="status-dot ${updated ? 'status-online' : 'status-stale'}"></div>${timeAgo(s.timestamp + "Z")}</div>`;
+                    const getTitleHtml = () => `${s.alias || cleanName(s.brand + ' ' + s.model)} <i data-lucide="edit-3" style="width:12px;opacity:0.3"></i>`;
+                    const getExpansionHtml = () => hasMore ? `
                             <div style="text-align: center; margin-top: 0.2rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.4rem;">
                                 <button class="btn-text" onclick="event.stopPropagation(); toggleCard('${s.uid}')" style="font-size: 0.75rem; color: var(--accent-color); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; margin: 0 auto;">
                                     ${isExpanded ? 'Visa färre <i data-lucide="chevron-up"></i>' : `Visa ${keys.length - 4} till <i data-lucide="chevron-down"></i>`}
                                 </button>
                             </div>
-                        ` : ''}`;
+                        ` : '';
 
                     if (!cardEl) {
                         cardEl = document.createElement('div');
@@ -841,16 +852,42 @@
                         cardEl.className = 'card';
                         cardEl.onclick = () => editAlias(s.uid, s.alias || '');
                         cardEl.style.cursor = 'pointer';
+                        cardEl.innerHTML = `
+                            <div class="card-header"></div>
+                            <h3></h3>
+                            <div class="simple-metrics" style="margin-top: 0.4rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.7rem;"></div>
+                            <div class="expansion-area"></div>
+                        `;
                         box.appendChild(cardEl);
                     }
 
+                    // Update contents only if needed or keep it simple but granular
+                    const header = cardEl.querySelector('.card-header');
+                    const title = cardEl.querySelector('h3');
+                    const metrics = cardEl.querySelector('.simple-metrics');
+                    const expansion = cardEl.querySelector('.expansion-area');
+
+                    // Granular content update (prevents flickering)
+                    header.innerHTML = getHeaderHtml();
+                    title.innerHTML = getTitleHtml();
+                    metrics.innerHTML = getMetricsHtml();
+                    expansion.innerHTML = getExpansionHtml();
+
+                    // Granular icon update (MUCH faster than global)
+                    lucide.createIcons({ props: {}, attrs: {}, nameAttr: 'data-lucide', elements: cardEl.querySelectorAll('[data-lucide]') });
+
                     if (updated && old.timestamp) {
-                        cardEl.classList.remove('flash-update');
-                        void cardEl.offsetWidth; // Trigger reflow
-                        cardEl.classList.add('flash-update');
+                        const now = Date.now();
+                        const lastFlash = cardEl.dataset.lastFlash || 0;
+                        if (now - lastFlash > 1000) { // Guard against too frequent flashes
+                            cardEl.classList.remove('flash-update');
+                            void cardEl.offsetWidth; // Trigger reflow
+                            cardEl.classList.add('flash-update');
+                            cardEl.dataset.lastFlash = now;
+                        }
                     }
 
-                    cardEl.innerHTML = cardHtml;
+
                     lastSensorData[s.uid] = s;
                 });
 
@@ -859,8 +896,6 @@
                     const el = document.getElementById(`card-${s.uid}`);
                     if (el && box.children[idx] !== el) box.insertBefore(el, box.children[idx]);
                 });
-
-                lucide.createIcons();
             };
             draw(active, sensorGrid);
             draw(lost, lostGrid);
