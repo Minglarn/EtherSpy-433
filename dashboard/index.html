@@ -539,9 +539,31 @@
                 <input type="text" id="sdr_protocols" placeholder="e.g. 19,25,31">
             </div>
 
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label>MQTT Broker IP</label>
+                    <input type="text" id="mqtt_broker">
+                </div>
+                <div class="form-group">
+                    <label>Port</label>
+                    <input type="number" id="mqtt_port">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label>MQTT User</label>
+                    <input type="text" id="mqtt_user">
+                </div>
+                <div class="form-group">
+                    <label>MQTT Password</label>
+                    <input type="password" id="mqtt_pass">
+                </div>
+            </div>
+
             <div class="form-group">
-                <label>MQTT Broker IP</label>
-                <input type="text" id="mqtt_broker">
+                <label>MQTT Topic Template</label>
+                <input type="text" id="mqtt_topic" placeholder="rtl_433[/model][/id]">
             </div>
 
             <div class="modal-actions" style="display: flex; gap: 1rem; margin-top: 2rem;">
@@ -595,7 +617,13 @@
 
         async function saveSettings() {
             const settings = {};
-            ['sdr_freq', 'sdr_protocols', 'sdr_device', 'sdr_gain', 'mqtt_broker', 'sdr_autolevel', 'sdr_noise', 'sdr_starred', 'sdr_samplerate', 'sdr_celsius', 'sdr_stale_threshold'].forEach(k => {
+            const fields = [
+                'sdr_freq', 'sdr_protocols', 'sdr_device', 'sdr_gain',
+                'mqtt_broker', 'mqtt_port', 'mqtt_user', 'mqtt_pass', 'mqtt_topic',
+                'sdr_autolevel', 'sdr_noise', 'sdr_starred', 'sdr_samplerate',
+                'sdr_celsius', 'sdr_stale_threshold'
+            ];
+            fields.forEach(k => {
                 const el = document.getElementById(k);
                 if (el) settings[k] = el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value;
             });
@@ -650,7 +678,6 @@
                     let full = {}; try { full = JSON.parse(s.raw_json); } catch (e) { full = s; }
                     const old = lastSensorData[s.sensor_id] || {};
                     const updated = old.timestamp !== s.timestamp;
-                    const isExp = expandedCards.has(s.sensor_id);
 
                     const trend = (k, v) => {
                         if (!old.raw_json) return '';
@@ -658,23 +685,21 @@
                         return (oV === undefined || oV === v) ? '' : (v > oV ? '<i class="trend-up" data-lucide="arrow-up-right"></i>' : '<i class="trend-down" data-lucide="arrow-down-right"></i>');
                     };
 
-                    const row = (k) => {
+                    const row = (k, v) => {
                         const c = FIELD_MAP[k.toLowerCase()] || { label: k, icon: 'info' };
-                        return `<div class="metric-row"><div class="metric-label"><i data-lucide="${c.icon}"></i> ${c.label}</div><div class="metric-value">${full[k]}${trend(k, full[k])}</div></div>`;
+                        return `<div class="metric-row"><div class="metric-label"><i data-lucide="${c.icon}"></i> ${c.label}</div><div class="metric-value">${v}${trend(k, v)}</div></div>`;
                     };
+
+                    // Define internal fields to exclude from generic rendering
+                    const EXCLUDE = ['time', 'brand', 'model', 'id', 'sensor_id', 'raw_json', 'timestamp', 'alias', 'battery_ok'];
 
                     lastSensorData[s.sensor_id] = s;
                     return `
-                        <div class="card ${s.battery_ok === 0 ? 'battery-low' : ''} ${updated && old.timestamp ? 'flash-update' : ''}" onclick="toggleCard('${s.sensor_id}')" style="cursor:pointer">
+                        <div class="card ${s.battery_ok === 0 ? 'battery-low' : ''} ${updated && old.timestamp ? 'flash-update' : ''}" onclick="editAlias('${s.sensor_id}','${s.alias || ''}')" style="cursor:pointer">
                             <div class="card-header"><span class="sensor-id">#${s.sensor_id}</span><div class="last-seen"><div class="status-dot ${updated ? 'status-online' : 'status-stale'}"></div>${timeAgo(s.timestamp + "Z")}</div></div>
-                            <h3 onclick="event.stopPropagation();editAlias('${s.sensor_id}','${s.alias || ''}')">${s.alias || cleanName(s.brand + ' ' + s.model)} <i data-lucide="edit-3" style="width:12px;opacity:0.3"></i></h3>
-                            <div class="simple-metrics">
-                                <div class="temp-large">${full.temperature_C || '--'}${trend('temperature_C', full.temperature_C)}<span class="unit">°C</span></div>
-                                <div class="humid-overlay"><i data-lucide="droplets"></i> ${full.humidity || '--'}${trend('humidity', full.humidity)}%</div>
-                            </div>
-                            <div style="display:${isExp ? 'flex' : 'none'};flex-direction:column;gap:0.5rem;margin-top:0.5rem;border-top:1px solid rgba(255,255,255,0.05);padding-top:1rem;">
-                                ${Object.keys(full).filter(k => !['time', 'brand', 'model', 'id', 'sensor_id', 'raw_json', 'timestamp', 'battery_ok', 'rssi', 'snr', 'noise', 'alias'].includes(k.toLowerCase())).map(row).join('')}
-                                ${row('rssi')} ${row('snr')}
+                            <h3>${s.alias || cleanName(s.brand + ' ' + s.model)} <i data-lucide="edit-3" style="width:12px;opacity:0.3"></i></h3>
+                            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem;">
+                                ${Object.keys(full).filter(k => !EXCLUDE.includes(k.toLowerCase())).map(k => row(k, full[k])).join('')}
                             </div>
                         </div>`;
                 }).join('');

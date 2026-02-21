@@ -255,46 +255,36 @@ def sdr_worker():
                 mqtt_dest = f"mqtt://{broker}:{port}"
                 if user: mqtt_dest += f",user={user}"
                 if pw: mqtt_dest += f",pass={pw}"
-                # Using 'events=' ensures single JSON messages instead of split topics
+                # Use 'events=' as specified in the implementation plan
                 mqtt_dest += f",retain=0,events={topic}"
                 cmd.extend(["-F", mqtt_dest])
 
             # Handle protocols safely
-            # Note: -G is deprecated and causes exits in newer versions. 
-            # If empty, 'all', or '-G' is requested, we use the 90+ default decoders by omitting the flag.
             p_clean = protocols.strip().lower()
             if p_clean and p_clean not in ["all", "none"]:
-                # Custom list: enables ONLY these
-                for p in protocols.split(','):
-                    if p.strip():
-                        cmd.extend(["-R", p.strip()])
+                for p_item in protocols.split(','):
+                    if p_item.strip():
+                        cmd.extend(["-R", p_item.strip()])
             elif p_clean == "all":
-                # Explicitly ALL
                 cmd.extend(["-R", "all"])
             else:
-                # Based on toggle
                 if str(get_setting('sdr_starred', '0')) == '1':
-                    print("SDR Worker: Starred protocols enabled. Using -R all.")
                     cmd.extend(["-R", "all"])
-                else:
-                    print("SDR Worker: Standard protocols only. Omitting -R flags.")
-                    # Omitting -R flags in rtl_433 enables all standard protocols by default.
             
             print(f"Starting SDR: {' '.join(cmd)}")
-            process_env = os.environ.copy()
-            sdr_process = subprocess.Popen(
+            p = subprocess.Popen(
                 cmd, 
                 stdout=subprocess.PIPE, 
                 stderr=subprocess.STDOUT, 
                 text=True,
-                env=process_env
+                env=os.environ.copy()
             )
+            sdr_process = p # Set global for restart_sdr
             
-            for line in sdr_process.stdout:
+            for line in p.stdout:
                 line = line.strip()
                 if not line: continue
                 
-                # If it's data JSON
                 if line.startswith('{') and line.endswith('}'):
                     try:
                         data = json.loads(line)
@@ -302,18 +292,15 @@ def sdr_worker():
                         continue
                     except json.JSONDecodeError:
                         pass
-                
-                # Print all other engine output
                 print(f"SDR Engine: {line}")
             
-            sdr_process.wait()
-            rc = sdr_process.returncode
-            if rc != 0:
-                print(f"SDR Engine FATAL: Engine exited with code {rc}. Check hardware or MQTT credentials.")
+            p.wait()
+            rc = p.returncode
+            if rc is not None and rc != 0:
+                print(f"SDR Engine FATAL: Engine exited with code {rc}.")
         except Exception as e:
             print(f"SDR Worker Error: {e}")
         
-        print("SDR Worker: Restarting engine in 5s...")
         time.sleep(5)
 
 def restart_sdr():
