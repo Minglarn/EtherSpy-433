@@ -66,7 +66,8 @@ def init_db():
         ('sdr_autolevel', '1'),
         ('sdr_noise', '1'),
         ('sdr_starred', '0'),
-        ('sdr_samplerate', '1024k')
+        ('sdr_samplerate', '1024k'),
+        ('sdr_celsius', '1')
     ]
     for key, val in defaults:
         cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, val))
@@ -109,8 +110,22 @@ def save_to_db(data):
             try: return float(v) if v is not None else None
             except: return None
 
+        # Global Celsius Conversion
+        if get_setting('sdr_celsius', '1') == '1':
+            # Create a copy to avoid modifying original if needed elsewhere, 
+            # but here it's fine to modify the local 'data'
+            keys_to_convert = [k for k in data.keys() if k.endswith('_F')]
+            for k_f in keys_to_convert:
+                val_f = safe_float(data[k_f])
+                if val_f is not None:
+                    k_c = k_f[:-2] + '_C'
+                    # Only convert if _C doesn't already exist or is None
+                    if data.get(k_c) is None:
+                        val_c = round((val_f - 32) * 5 / 9, 2)
+                        data[k_c] = val_c
+                        # print(f"Converted {k_f} ({val_f}) to {k_c} ({val_c})")
+
         temp = safe_float(data.get('temperature_C'))
-        if temp is None: temp = safe_float(data.get('temperature_F'))
         humidity = safe_float(data.get('humidity'))
         raw_json = json.dumps(data)
 
