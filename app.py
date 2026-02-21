@@ -308,20 +308,6 @@ def restart_sdr():
             sdr_process.kill()
         sdr_process = None
 
-# Flask API
-@app.route('/api/data')
-def get_sensor_data():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        query = """
-            SELECT * FROM sensors_data WHERE id IN (
-                SELECT id FROM (
-                    SELECT id, MAX(timestamp) OVER (PARTITION BY sensor_id) as max_ts
-                    FROM sensors_data
-                ) WHERE timestamp = max_ts
-            )
-            ORDER BY brand ASC, model ASC, sensor_id ASC
 @app.route('/api/data')
 def get_sensor_data():
     try:
