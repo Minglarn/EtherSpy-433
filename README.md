@@ -44,8 +44,7 @@ docker-compose up -d
 The backend is now a standalone Python/Flask application containerized within the Docker stack. It serves the Premium Dashboard and the data API.
 
 ### 5. Web UI & Visualization
-- **Premium Dashboard:** Access at `http://localhost:5000`. This is the primary standalone interface.
-- **Grafana:** Access at `http://localhost:3000` (User: `admin` / Pass: `admin`) for deep analytics.
+- **Premium Dashboard:** Access at `http://localhost:5000`. This is the primary standalone interface for viewing live sensor data.
 
 ## Project Structure
 - `docker-compose.yml`: Full stack orchestration (SDR, Backend, DB, MQTT).

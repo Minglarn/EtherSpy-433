@@ -63,19 +63,5 @@ services:
     volumes:
       - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
 
-  # Visualization Dashboard
-  grafana:
-    image: grafana/grafana-oss:latest
-    container_name: etherspy-grafana
-    restart: always
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - TZ=Europe/Stockholm
-    volumes:
-      - grafana-storage:/var/lib/grafana
-
 volumes:
   mariadb-data:
-  grafana-storage:
