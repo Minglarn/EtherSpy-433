@@ -6,15 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EtherSpy-433 | SDR Monitoring</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --glass-bg: rgba(30, 41, 59, 0.7);
+            --bg-color: #1a1f2c;
+            --glass-bg: rgba(30, 41, 59, 0.4);
             --accent-color: #38bdf8;
             --text-color: #f1f5f9;
             --danger: #ef4444;
-            --success: #22c55e;
+            --success: #10b981;
             --warning: #f59e0b;
+            --glow-color: rgba(56, 189, 248, 0.3);
         }
 
         * {
@@ -27,8 +30,8 @@
         body {
             background: var(--bg-color);
             background-image:
-                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.15) 0, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0, transparent 50%);
+                radial-gradient(at 0% 0%, rgba(15, 23, 42, 1) 0, transparent 100%),
+                radial-gradient(at 100% 100%, rgba(30, 41, 59, 1) 0, transparent 100%);
             color: var(--text-color);
             min-height: 100vh;
             padding: 2rem;
@@ -36,7 +39,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
@@ -49,9 +52,9 @@
         }
 
         .logo h1 {
-            font-size: 2.5rem;
+            font-size: 2.2rem;
             font-weight: 600;
-            letter-spacing: -1px;
+            letter-spacing: -0.5px;
             background: linear-gradient(90deg, #38bdf8, #818cf8);
             -webkit-background-clip: text;
             background-clip: text;
@@ -60,114 +63,231 @@
 
         .header-actions {
             display: flex;
-            gap: 1rem;
+            gap: 1.5rem;
             align-items: center;
         }
 
         .status-badge {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            padding: 0.5rem 1.5rem;
-            border-radius: 99px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.6rem 1.2rem;
+            border-radius: 16px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.8rem;
             font-size: 0.9rem;
+            font-weight: 500;
         }
 
         .settings-btn {
-            background: var(--glass-bg);
+            background: transparent;
             border: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 12px;
+            padding: 0.6rem 1.2rem;
+            border-radius: 16px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .settings-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px var(--glow-color);
         }
 
         .pulse {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             background: var(--success);
             border-radius: 50%;
-            box-shadow: 0 0 10px var(--success);
-            animation: pulse 2s infinite;
+            box-shadow: 0 0 12px var(--success);
+            animation: pulse-ring 2s infinite;
         }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 2rem;
         }
 
         .card {
             background: var(--glass-bg);
-            backdrop-filter: blur(16px);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 2rem;
-            transition: transform 0.3s ease, border-color 0.3s ease;
+            border-radius: 28px;
+            padding: 1.5rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
-            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
         .card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(56, 189, 248, 0.4);
+            transform: translateY(-8px);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 25px var(--glow-color);
         }
 
-        .card::before {
+        /* Neon Line Effect */
+        .card::after {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: var(--accent-color);
+            top: -1px;
+            left: 15%;
+            right: 15%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
             opacity: 0.5;
         }
 
         .card-header {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 1.5rem;
+            align-items: flex-start;
         }
 
-        .sensor-tag {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .sensor-id {
             color: var(--accent-color);
+            font-size: 0.85rem;
             font-weight: 600;
+            opacity: 0.8;
         }
 
-        .value-display {
-            font-size: 3.5rem;
+        .last-seen {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .status-online {
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        .status-stale {
+            background: var(--warning);
+            box-shadow: 0 0 8px var(--warning);
+        }
+
+        .status-offline {
+            background: var(--danger);
+            box-shadow: 0 0 8px var(--danger);
+        }
+
+        .card h3 {
+            font-size: 1.35rem;
+            font-weight: 600;
+            margin-top: -0.2rem;
+            color: white;
+            line-height: 1.2;
+        }
+
+        /* Large Metrics (Simple View) */
+        .simple-metrics {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin: 0.5rem 0;
+        }
+
+        .temp-large {
+            font-size: 3.8rem;
             font-weight: 300;
-            margin-bottom: 0.5rem;
             display: flex;
             align-items: baseline;
-            gap: 0.5rem;
+            gap: 0.2rem;
         }
 
-        .unit {
-            font-size: 1.5rem;
-            color: rgba(255, 255, 255, 0.5);
+        .temp-large .unit {
+            font-size: 1.8rem;
+            color: rgba(255, 255, 255, 0.4);
+            font-weight: 400;
         }
 
-        .sub-data {
+        .humid-overlay {
             display: flex;
-            gap: 1.5rem;
-            font-size: 0.9rem;
+            align-items: center;
+            gap: 0.6rem;
+            color: var(--accent-color);
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .humid-overlay i {
+            width: 18px;
+        }
+
+        /* Metric List View (Tellus style) */
+        .metric-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 1rem;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95rem;
+        }
+
+        .metric-label {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
             color: rgba(255, 255, 255, 0.6);
         }
 
-        /* Modal Styles */
+        .metric-label i {
+            width: 16px;
+            color: var(--accent-color);
+            opacity: 0.8;
+        }
+
+        .metric-value {
+            font-weight: 500;
+            color: white;
+        }
+
+        .card-footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .battery-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .ch-label {
+            opacity: 0.4;
+        }
+
+        /* Modals */
         .modal {
             display: none;
             position: fixed;
@@ -175,8 +295,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(8px);
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(12px);
             z-index: 1000;
             align-items: center;
             justify-content: center;
@@ -184,43 +304,48 @@
 
         .modal-content {
             background: #1e293b;
-            padding: 3rem;
+            padding: 2.5rem;
             border-radius: 32px;
             width: 90%;
             max-width: 500px;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
         }
 
         label {
             display: block;
             margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
         }
 
         input {
             width: 100%;
             background: rgba(0, 0, 0, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 0.8rem 1rem;
-            border-radius: 12px;
+            padding: 0.8rem 1.2rem;
+            border-radius: 14px;
             color: white;
             font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
         }
 
-        .modal-actions {
-            display: flex;
-            gap: 1rem;
-            margin-top: 2rem;
+        input:focus {
+            border-color: var(--accent-color);
         }
 
         .btn {
-            padding: 0.8rem 2rem;
-            border-radius: 12px;
+            padding: 0.9rem 1.8rem;
+            border-radius: 14px;
             border: none;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s;
         }
 
         .btn-primary {
@@ -229,24 +354,22 @@
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
             color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        @keyframes pulse {
+        @keyframes pulse-ring {
             0% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
             }
 
             70% {
-                transform: scale(1);
-                box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
             }
 
             100% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
             }
         }
 
@@ -261,22 +384,6 @@
                 transform: translateY(0);
             }
         }
-
-        .refresh-btn {
-            background: var(--accent-color);
-            color: var(--bg-color);
-            border: none;
-            padding: 0.8rem 2rem;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .refresh-btn:hover {
-            opacity: 0.9;
-            transform: scale(1.05);
-        }
     </style>
 </head>
 
@@ -287,28 +394,34 @@
                 <h1>EtherSpy-433</h1>
             </div>
             <div class="header-actions">
-                <button class="settings-btn" onclick="toggleModal(true)">⚙️ Settings</button>
+                <button class="settings-btn" onclick="toggleModal(true)">
+                    <i data-lucide="settings"></i> Settings
+                </button>
                 <div class="status-badge">
-                    <div class="pulse"></div> Live
+                    <div class="pulse"></div> Live Monitor
                 </div>
             </div>
         </header>
 
         <div class="grid" id="sensorGrid">
-            <div class="card" style="grid-column: 1/-1; text-align: center; opacity: 0.6;">
+            <div class="card" style="grid-column: 1/-1; text-align: center; opacity: 0.6; padding: 4rem;">
                 <p>Establishing contact with SDR stack...</p>
             </div>
         </div>
 
         <div style="margin-top: 4rem; text-align: center;">
-            <button class="refresh-btn" onclick="fetchSensorData()">Scan Now</button>
+            <button class="btn btn-secondary" onclick="fetchSensorData()" style="padding: 0.8rem 2.5rem;">
+                <i data-lucide="refresh-cw"
+                    style="width: 16px; display: inline-block; vertical-align: middle; margin-right: 0.5rem;"></i> Force
+                Refresh
+            </button>
         </div>
     </div>
 
     <!-- Settings Modal -->
     <div class="modal" id="settingsModal">
         <div class="modal-content">
-            <h2 style="margin-bottom: 1.5rem; font-size: 1.5rem;">SDR & MQTT Settings</h2>
+            <h2 style="margin-bottom: 2rem; font-size: 1.5rem; font-weight: 600;">System Configuration</h2>
             <div class="form-group">
                 <label>Frequency (e.g. 433.92M)</label>
                 <input type="text" id="sdr_freq">
@@ -324,11 +437,11 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Custom Protocols (leave empty for all)</label>
+                <label>Custom Protocols</label>
                 <input type="text" id="sdr_protocols" placeholder="e.g. 19,25,31">
             </div>
 
-            <hr style="opacity: 0.1; margin: 1.5rem 0;">
+            <hr style="opacity: 0.05; margin: 2rem 0;">
 
             <div class="form-row" style="display: grid; grid-template-columns: 3fr 1.5fr; gap: 1rem;">
                 <div class="form-group">
@@ -351,12 +464,12 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>MQTT Topic Prefix</label>
-                <input type="text" id="mqtt_topic" placeholder="rtl_433[/model][/id]">
+                <label>Topic Template</label>
+                <input type="text" id="mqtt_topic">
             </div>
-            <div class="modal-actions">
-                <button class="btn btn-primary" onclick="saveSettings()">Save & Restart</button>
-                <button class="btn btn-secondary" onclick="toggleModal(false)">Cancel</button>
+            <div class="modal-actions" style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button class="btn btn-primary" style="flex: 1;" onclick="saveSettings()">Apply Changes</button>
+                <button class="btn btn-secondary" onclick="toggleModal(false)">Close</button>
             </div>
         </div>
     </div>
@@ -388,17 +501,11 @@
         }
 
         async function saveSettings() {
-            const settings = {
-                sdr_freq: document.getElementById('sdr_freq').value,
-                sdr_protocols: document.getElementById('sdr_protocols').value,
-                sdr_device: document.getElementById('sdr_device').value,
-                sdr_gain: document.getElementById('sdr_gain').value,
-                mqtt_broker: document.getElementById('mqtt_broker').value,
-                mqtt_port: document.getElementById('mqtt_port').value,
-                mqtt_user: document.getElementById('mqtt_user').value,
-                mqtt_pass: document.getElementById('mqtt_pass').value,
-                mqtt_topic: document.getElementById('mqtt_topic').value
-            };
+            const settings = {};
+            ['sdr_freq', 'sdr_protocols', 'sdr_device', 'sdr_gain', 'mqtt_broker', 'mqtt_port', 'mqtt_user', 'mqtt_pass', 'mqtt_topic'].forEach(k => {
+                const el = document.getElementById(k);
+                if (el) settings[k] = el.value;
+            });
 
             await fetch('/api/settings', {
                 method: 'POST',
@@ -406,7 +513,7 @@
                 body: JSON.stringify(settings)
             });
             toggleModal(false);
-            fetchSensorData();
+            setTimeout(fetchSensorData, 2000);
         }
 
         function cleanName(name) {
@@ -415,22 +522,16 @@
         }
 
         const FIELD_MAP = {
-            'temperature_c': 'Temp',
-            'temperature_f': 'Temp',
-            'temperature_1_c': 'Temp 1',
-            'temperature_2_c': 'Temp 2',
-            'humidity': 'Humid',
-            'humidity_1': 'Humid 1',
-            'humidity_2': 'Humid 2',
-            'pressure_hpa': 'Pressure',
-            'wind_avg_m_s': 'Wind Avg',
-            'wind_max_m_s': 'Wind Gust',
-            'wind_dir_deg': 'Wind Dir',
-            'rain_mm': 'Rain Total',
-            'rain_rate_mm_h': 'Rain Rate',
-            'uv': 'UV Index',
-            'lux': 'Light',
-            'moisture': 'Moisture'
+            'temperature_c': { label: 'Temp', icon: 'thermometer' },
+            'temperature_f': { label: 'Temp', icon: 'thermometer' },
+            'humidity': { label: 'Humidity', icon: 'droplets' },
+            'pressure_hpa': { label: 'Pressure', icon: 'gauge' },
+            'wind_avg_m_s': { label: 'Wind Avg', icon: 'wind' },
+            'wind_max_m_s': { label: 'Wind Max', icon: 'wind' },
+            'wind_dir_deg': { label: 'Wind Dir', icon: 'compass' },
+            'rain_mm': { label: 'Rain', icon: 'cloud-rain' },
+            'rain_rate_mm_h': { label: 'Rain Rate', icon: 'cloud-rain' },
+            'battery_ok': { label: 'Battery', icon: 'battery' }
         };
 
         function timeAgo(date) {
@@ -438,16 +539,15 @@
             if (seconds < 10) return "Just now";
             if (seconds < 60) return seconds + "s";
             if (seconds < 3600) return Math.floor(seconds / 60) + "m";
-            return Math.floor(seconds / 3600) + "h";
+            return Math.floor(seconds / 3600) + "h ago";
         }
 
         function renderSensors(sensors) {
             if (!sensors || sensors.length === 0) {
-                sensorGrid.innerHTML = '<div class="card" style="grid-column: 1/-1; text-align: center;"><p>Watching for signals...</p></div>';
+                sensorGrid.innerHTML = '<div class="card" style="grid-column: 1/-1; text-align: center;"><p>Waiting for sensor signals...</p></div>';
                 return;
             }
 
-            // STABLE SORT: Brand > Model > ID
             const sorted = sensors.sort((a, b) => {
                 const keyA = `${a.brand}${a.model}${a.sensor_id}`.toLowerCase();
                 const keyB = `${b.brand}${b.model}${b.sensor_id}`.toLowerCase();
@@ -456,76 +556,85 @@
 
             sensorGrid.innerHTML = sorted.map(s => {
                 let fullData = {};
-                try {
-                    fullData = JSON.parse(s.raw_json);
-                } catch (e) {
-                    fullData = { temperature_C: s.temperature_c, humidity: s.humidity };
-                }
+                try { fullData = JSON.parse(s.raw_json); } catch (e) { fullData = s; }
 
                 const secondsSince = Math.floor((new Date() - new Date(s.timestamp + "Z")) / 1000);
                 let statusClass = 'status-online';
                 let cardOpacity = 1;
-                if (secondsSince > 300) { // 5 minutes
-                    statusClass = 'status-stale';
-                    cardOpacity = 0.6;
-                }
-                if (secondsSince > 1800) { // 30 minutes
-                    statusClass = 'status-offline';
-                    cardOpacity = 0.4;
-                }
+                if (secondsSince > 300) { statusClass = 'status-stale'; cardOpacity = 0.7; }
+                if (secondsSince > 1800) { statusClass = 'status-offline'; cardOpacity = 0.5; }
 
-                // Filter out metadata and secondary fields
                 const skipFields = ['time', 'model', 'id', 'brand', 'channel', 'battery_ok', 'mic', 'mod', 'freq', 'rssi', 'snr', 'noise'];
+                const dataKeys = Object.keys(fullData).filter(k => !skipFields.includes(k.toLowerCase()));
 
-                // Group fields for cleaner display
-                const dynamicFields = Object.keys(fullData)
-                    .filter(key => !skipFields.includes(key.toLowerCase()))
-                    .map(key => {
-                        let val = fullData[key];
-                        let label = FIELD_MAP[key.toLowerCase()] || key.replace(/_/g, ' ').toLowerCase();
+                // Determine if we show "Simple" (Large Temp) or "Metric List"
+                const isComplex = dataKeys.length > 3 || dataKeys.some(k => k.includes('wind') || k.includes('rain') || k.includes('pressure'));
+
+                let mainContent = '';
+                if (!isComplex) {
+                    const temp = fullData.temperature_C || fullData.temperature_F || '--';
+                    const hum = fullData.humidity !== undefined ? fullData.humidity : '--';
+                    mainContent = `
+                        <div class="simple-metrics">
+                            <div class="temp-large">${temp}<span class="unit">°C</span></div>
+                            <div class="humid-overlay">
+                                <i data-lucide="droplets"></i>
+                                <span>${hum}% <small>Humid</small></span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    mainContent = `
+                        <div class="metric-list">
+                            ${dataKeys.map(k => {
+                        const info = FIELD_MAP[k.toLowerCase()] || { label: k.replace(/_/g, ' '), icon: 'activity' };
+                        let val = fullData[k];
                         let unit = '';
-                        if (key.includes('_C')) unit = '°C';
-                        if (key.includes('_F')) unit = '°F';
-                        if (key.includes('m_s')) unit = 'm/s';
-                        if (key.includes('deg')) unit = '°';
-                        if (key.includes('mm')) unit = 'mm';
-                        if (key.includes('humidity')) unit = '%';
-                        if (key.includes('hpa')) unit = ' hPa';
+                        if (k.includes('_C')) unit = '°C';
+                        if (k.includes('_F')) unit = '°F';
+                        if (k.includes('m_s')) unit = 'm/s';
+                        if (k.includes('deg')) unit = '°';
+                        if (k.includes('mm')) unit = 'mm';
+                        if (k.includes('hpa')) unit = ' hPa';
+                        if (k.includes('humidity')) unit = '%';
 
                         return `
-                            <div class="data-row">
-                                <span class="data-label">${label}</span>
-                                <span class="data-val">${val}${unit}</span>
-                            </div>
-                        `;
-                    }).join('');
+                                    <div class="metric-row">
+                                        <div class="metric-label"><i data-lucide="${info.icon}"></i> ${info.label}</div>
+                                        <div class="metric-value">${val}${unit}</div>
+                                    </div>
+                                `;
+                    }).join('')}
+                        </div>
+                    `;
+                }
 
                 return `
                     <div class="card" style="opacity: ${cardOpacity}">
                         <div class="card-header">
-                            <div class="sensor-info">
-                                <span class="sensor-id">#${s.sensor_id}</span>
-                                <h3>${cleanName(s.brand)} ${cleanName(s.model)}</h3>
-                            </div>
+                            <span class="sensor-id">#${s.sensor_id}</span>
                             <div class="last-seen">
                                 <span class="status-dot ${statusClass}"></span>
-                                <span>${timeAgo(s.timestamp + "Z")}</span>
+                                ${timeAgo(s.timestamp + "Z")}
                             </div>
                         </div>
 
-                        <div class="data-grid" style="margin-top: 0.5rem;">
-                            ${dynamicFields}
-                        </div>
+                        <h3>${cleanName(s.brand)}<br><small style="font-size: 0.9rem; opacity: 0.6; font-weight: 400;">${cleanName(s.model)}</small></h3>
 
-                        <div class="card-footer" style="border-top: none; padding-top: 0.25rem;">
-                            <span style="color: ${s.battery_ok ? 'var(--success)' : 'var(--danger)'}; opacity: 0.7; font-size: 0.65rem;">
-                                ${s.battery_ok ? 'BATT OK' : 'BATT LOW'}
-                            </span>
-                            <span style="opacity: 0.3; font-size: 0.65rem;">CH ${s.channel || 0}</span>
+                        ${mainContent}
+
+                        <div class="card-footer">
+                            <div class="battery-pill" style="color: ${s.battery_ok ? 'var(--success)' : 'var(--danger)'}">
+                                <i data-lucide="${s.battery_ok ? 'battery' : 'battery-low'}"></i>
+                                ${s.battery_ok ? 'BATTERY OK' : 'LOW BATT'}
+                            </div>
+                            <span class="ch-label">CH ${s.channel || 0}</span>
                         </div>
                     </div>
                 `;
             }).join('');
+
+            lucide.createIcons();
         }
 
         fetchSensorData();
