@@ -182,9 +182,10 @@ def sdr_worker():
                 cmd.extend(["-F", mqtt_dest])
 
             # Handle protocols safely
-            if protocols.strip().upper() == "-G" or protocols.strip().lower() == "all":
-                cmd.append("-G")
-            elif protocols.strip():
+            # Note: -G is deprecated and causes exits in newer versions. 
+            # If empty, 'all', or '-G' is requested, we use the 90+ default decoders by omitting the flag.
+            p_clean = protocols.strip().lower()
+            if p_clean and p_clean not in ["all", "-g"]:
                 for p in protocols.split(','):
                     cmd.extend(["-R", p.strip()])
             
@@ -220,12 +221,9 @@ def sdr_worker():
             sdr_process.wait()
             rc = sdr_process.returncode
             if rc != 0:
-                print(f"SDR Engine FATAL: Process exited with code {rc}. If it dies after 'Publishing MQTT', check your broker connectivity/credentials.")
+                print(f"SDR Engine FATAL: Engine exited with code {rc}. Check hardware or MQTT credentials.")
         except Exception as e:
             print(f"SDR Worker Error: {e}")
-        
-        print("SDR Worker: Restarting engine in 5s...")
-        time.sleep(5)
         
         print("SDR Worker: Restarting engine in 5s...")
         time.sleep(5)
