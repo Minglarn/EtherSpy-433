@@ -329,8 +329,31 @@
                 <label>Gain (auto or dB)</label>
                 <input type="text" id="sdr_gain">
             </div>
+            <hr style="opacity: 0.1; margin: 2rem 0;">
+            <h3 style="margin-bottom: 1rem; font-size: 1rem; color: var(--accent-color);">MQTT Publishing (Optional)
+            </h3>
+            <div class="form-row" style="display: grid; grid-template-columns: 3fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label>Broker IP</label>
+                    <input type="text" id="mqtt_broker">
+                </div>
+                <div class="form-group">
+                    <label>Port</label>
+                    <input type="text" id="mqtt_port">
+                </div>
+            </div>
+            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="mqtt_user">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="mqtt_pass">
+                </div>
+            </div>
             <div class="modal-actions">
-                <button class="btn btn-primary" onclick="saveSettings()">Save & Restart SDR</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save & Restart</button>
                 <button class="btn btn-secondary" onclick="toggleModal(false)">Cancel</button>
             </div>
         </div>
@@ -358,7 +381,9 @@
             const settings = await resp.json();
             Object.keys(settings).forEach(key => {
                 const input = document.getElementById(key);
-                if (input) input.value = settings[key];
+                if (input) {
+                    input.value = settings[key] || '';
+                }
             });
         }
 
@@ -367,7 +392,11 @@
                 sdr_freq: document.getElementById('sdr_freq').value,
                 sdr_protocols: document.getElementById('sdr_protocols').value,
                 sdr_device: document.getElementById('sdr_device').value,
-                sdr_gain: document.getElementById('sdr_gain').value
+                sdr_gain: document.getElementById('sdr_gain').value,
+                mqtt_broker: document.getElementById('mqtt_broker').value,
+                mqtt_port: document.getElementById('mqtt_port').value,
+                mqtt_user: document.getElementById('mqtt_user').value,
+                mqtt_pass: document.getElementById('mqtt_pass').value
             };
 
             await fetch('/api/settings', {
@@ -376,7 +405,7 @@
                 body: JSON.stringify(settings)
             });
             toggleModal(false);
-            alert("Settings applied. SDR is restarting...");
+            alert("Settings applied. SDR stack is restarting...");
         }
 
         function renderSensors(sensors) {

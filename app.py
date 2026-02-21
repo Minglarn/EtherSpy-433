@@ -100,6 +100,48 @@ def save_to_db(data):
     except Exception as e:
         print(f"Error inserting into SQLite: {e}")
 
+# MQTT Subscriber (for receiving from broker)
+def mqtt_subscriber():
+    client = mqtt.Client()
+    
+    def on_connect(c, userdata, flags, rc):
+        if rc == 0:
+            print("MQTT Subscriber: Connected to broker")
+            c.subscribe("rtl_433/#")
+        else:
+            print(f"MQTT Subscriber: Connection failed (code {rc})")
+
+    def on_message(c, userdata, msg):
+        try:
+            payload = json.loads(msg.payload.decode())
+            save_to_db(payload)
+        except Exception as e:
+            pass
+
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    last_broker = None
+    while True:
+        broker = get_setting('mqtt_broker', '')
+        port = int(get_setting('mqtt_port', '1883'))
+        user = get_setting('mqtt_user', '')
+        pw = get_setting('mqtt_pass', '')
+
+        if broker and broker != last_broker:
+            try:
+                print(f"MQTT Subscriber: Connecting to {broker}...")
+                if user and pw:
+                    client.username_pw_set(user, pw)
+                client.disconnect()
+                client.connect(broker, port, 60)
+                last_broker = broker
+            except Exception as e:
+                print(f"MQTT Subscriber Error: {e}")
+        
+        client.loop(timeout=1.0)
+        time.sleep(1)
+
 # SDR Management
 def sdr_worker():
     global sdr_process
@@ -109,22 +151,32 @@ def sdr_worker():
             gain = get_setting('sdr_gain', 'auto')
             protocols = get_setting('sdr_protocols', '')
             device = get_setting('sdr_device', ':0')
+            broker = get_setting('mqtt_broker', '')
+            port = get_setting('mqtt_port', '1883')
+            user = get_setting('mqtt_user', '')
+            pw = get_setting('mqtt_pass', '')
 
             # Basic command structure
-            # We add '-F log' to see internal errors in the stdout stream
             cmd = [
                 "rtl_433",
                 "-d", device,
                 "-f", freq,
                 "-g", gain,
-                "-F", "log",
                 "-F", "json",
                 "-M", "level",
                 "-M", "metadata",
                 "-M", "time:iso8601"
             ]
             
-            # Handle protocols
+            # Optional MQTT Output
+            if broker:
+                mqtt_dest = f"mqtt://{broker}:{port}"
+                if user: mqtt_dest += f",user={user}"
+                if pw: mqtt_dest += f",pass={pw}"
+                mqtt_dest += ",retain=0,devices=rtl_433[/model][/id]"
+                cmd.extend(["-F", mqtt_dest])
+
+            # Handle protocols safely
             if protocols.strip().upper() == "-G" or protocols.strip().lower() == "all":
                 cmd.append("-G")
             elif protocols.strip():
@@ -132,14 +184,19 @@ def sdr_worker():
                     cmd.extend(["-R", p.strip()])
             
             print(f"Starting SDR: {' '.join(cmd)}")
-            # Use stderr=subprocess.STDOUT to catch everything
-            sdr_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            process_env = os.environ.copy()
+            sdr_process = subprocess.Popen(
+                cmd, 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.STDOUT, 
+                text=True,
+                env=process_env
+            )
             
             for line in sdr_process.stdout:
                 line = line.strip()
                 if not line: continue
                 
-                # Check if it's JSON (the data we want)
                 if line.startswith('{') and line.endswith('}'):
                     try:
                         data = json.loads(line)
@@ -148,17 +205,20 @@ def sdr_worker():
                     except json.JSONDecodeError:
                         pass
                 
-                # Otherwise, it's a log/debug message
-                # Suppress known noisy but harmless logs
-                if any(x in line for x in ["R82XX", "Exact sample rate", "Tuned to"]):
+                if any(x in line for x in ["R82XX", "Exact sample rate", "Tuned to", "register_all", "MQTT"]):
+                    if "MQTT" in line: print(f"SDR Engine: {line}")
                     continue
                 print(f"SDR Engine: {line}")
             
             sdr_process.wait()
             rc = sdr_process.returncode
-            print(f"SDR Process exited with code {rc}")
+            if rc != 0:
+                print(f"SDR Engine ERROR: Process exited with code {rc}.")
         except Exception as e:
             print(f"SDR Worker Error: {e}")
+        
+        print("SDR Worker: Restarting engine in 5s...")
+        time.sleep(5)
         
         print("SDR Worker: Restarting engine in 5s...")
         time.sleep(5)
@@ -227,4 +287,6 @@ if __name__ == '__main__':
     init_db()
     sdr_thread = threading.Thread(target=sdr_worker, daemon=True)
     sdr_thread.start()
+    mqtt_thread = threading.Thread(target=mqtt_subscriber, daemon=True)
+    mqtt_thread.start()
     app.run(host='0.0.0.0', port=5000)
