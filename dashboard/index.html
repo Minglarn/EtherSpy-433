@@ -1008,11 +1008,12 @@
                         const kl = k.toLowerCase();
                         if (EXCLUDE.includes(kl)) return false;
                         // Hide Fahrenheit if Celsius mode is on and we have a C equivalent
-                        if (isCelsius && (kl.endsWith('_f') || kl.endsWith(' f'))) {
+                        if (isCelsius && kl.match(/(_f| f)$/i)) {
                             const base = kl.replace(/(_f| f)$/i, '');
+                            // Look for any key that starts with the same base and ends in C
                             const hasC = Object.keys(full).some(key => {
-                                const lKey = key.toLowerCase();
-                                return lKey === base + '_c' || lKey === base + ' c' || lKey === base + 'c';
+                                const lks = key.toLowerCase();
+                                return lks === base + '_c' || lks === base + ' c' || lks === base + 'c';
                             });
                             if (hasC) return false;
                         }
@@ -1113,7 +1114,12 @@
 
         const socket = io();
         socket.on('new_data', renderSensors);
-        fetchSensorData();
+
+        // Initial load
+        (async () => {
+            await loadSettings();
+            await fetchSensorData();
+        })();
     </script>
 </body>
 
