@@ -457,6 +457,59 @@
                 box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
             }
         }
+
+        /* Protocol Selector Specific */
+        .protocol-list {
+            margin-top: 1rem;
+            max-height: 350px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.5rem;
+        }
+
+        .protocol-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.6rem 0.8rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .protocol-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .protocol-item:last-child {
+            border-bottom: none;
+        }
+
+        .protocol-item .id-label {
+            color: var(--accent-color);
+            font-weight: 700;
+            font-size: 0.8rem;
+            min-width: 35px;
+        }
+
+        .protocol-item .name-label {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        .protocol-item input {
+            transform: scale(1.1);
+        }
+
+        .search-container {
+            position: sticky;
+            top: 0;
+            background: #1e293b;
+            padding-bottom: 1rem;
+            z-index: 10;
+        }
     </style>
 </head>
 
@@ -586,7 +639,13 @@
 
             <div class="form-group">
                 <label>Custom Protocols (Override)</label>
-                <input type="text" id="sdr_protocols" placeholder="e.g. 19,25,31">
+                <div style="display: flex; gap: 0.8rem;">
+                    <input type="text" id="sdr_protocols" placeholder="e.g. 19,25,31" style="flex: 1;">
+                    <button class="btn btn-secondary" onclick="openProtocolSelector()"
+                        style="padding: 0.6rem 1rem; line-height: 1; border-radius: 12px; white-space: nowrap; font-size: 0.85rem;">
+                        Välj...
+                    </button>
+                </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem;">
