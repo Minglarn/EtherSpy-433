@@ -29,7 +29,6 @@ services:
     restart: always
     ports:
       - "5000:5000"
-    working_dir: /app
     volumes:
       - .:/app
     environment:
@@ -38,5 +37,7 @@ services:
       - MQTT_USER=${MQTT_USER:-}
       - MQTT_PASS=${MQTT_PASS:-}
       - DB_PATH=/app/data/etherspy.db
+      - PYTHONUNBUFFERED=1
+    working_dir: /app
     command: >
-      sh -c "pip install --no-cache-dir -r requirements.txt && python app.py"
+      sh -c "ls -la /app && pip install --no-cache-dir -r requirements.txt && python app.py"
