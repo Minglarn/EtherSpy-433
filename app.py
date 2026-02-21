@@ -95,10 +95,10 @@ def get_latest_sensors(conn=None):
     cursor = conn.cursor()
     # Unique identification by (brand, model, sensor_id)
     query = """
-        SELECT s.*, a.alias 
+        SELECT s.*, a.alias, latest.update_count
         FROM sensors_data s
         INNER JOIN (
-            SELECT brand, model, sensor_id, MAX(id) as max_id 
+            SELECT brand, model, sensor_id, MAX(id) as max_id, COUNT(*) as update_count
             FROM sensors_data 
             GROUP BY brand, model, sensor_id
         ) latest ON s.id = latest.max_id
@@ -135,8 +135,13 @@ def save_to_db(data):
         # We need at least an ID or model to consider this valid sensor data
         sensor_id = data.get('id')
         if sensor_id is None: sensor_id = data.get('sensor_id')
-        if sensor_id is None: # Accept 0, but not None
-            return
+        
+        # Fallback for ID-less sensors (like some Telldus models)
+        if sensor_id is None:
+            # Use channel or a generic "0" if nothing else exists
+            chan = data.get('channel', '0')
+            sensor_id = f"gen-{chan}"
+            # print(f"Backend: Missing ID for {data.get('model')}, using fallback {sensor_id}")
 
         conn = get_db_connection()
         cursor = conn.cursor()

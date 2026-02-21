@@ -255,6 +255,19 @@
             gap: 0.4rem;
         }
 
+        .update-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            padding: 0.15rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            border: 1px solid rgba(16, 185, 129, 0.15);
+        }
+
         .status-dot {
             width: 6px;
             height: 6px;
@@ -987,7 +1000,19 @@
 
                     // Content helper
                     const getMetricsHtml = () => visibleKeys.map(k => row(k, full[k])).join('');
-                    const getHeaderHtml = () => `<span class="sensor-id">#${s.sensor_id}</span><div class="last-seen"><div class="status-dot ${updated ? 'status-online' : 'status-stale'}"></div>${timeAgo(s.timestamp + "Z")}</div>`;
+                    const getHeaderHtml = () => `
+                        <span class="sensor-id">#${s.sensor_id}</span>
+                        <div style="display: flex; align-items: center; gap: 0.6rem;">
+                            <span class="update-badge" title="Antal uppdateringar">
+                                <i data-lucide="refresh-cw" style="width: 10px; opacity: 0.7;"></i>
+                                ${s.update_count || 1}
+                            </span>
+                            <div class="last-seen">
+                                <div class="status-dot ${updated ? 'status-online' : 'status-stale'}"></div>
+                                ${timeAgo(s.timestamp + "Z")}
+                            </div>
+                        </div>
+                    `;
                     const getTitleHtml = () => `${s.alias || cleanName(s.brand + ' ' + s.model)} <i data-lucide="edit-3" style="width:12px;opacity:0.3"></i>`;
                     const getExpansionHtml = () => hasMore ? `
                             <div style="text-align: center; margin-top: 0.2rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.4rem;">
