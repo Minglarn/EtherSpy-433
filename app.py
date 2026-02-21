@@ -52,8 +52,8 @@ def init_db():
     defaults = [
         ('sdr_freq', '433.92M'),
         ('sdr_gain', 'auto'),
-        ('sdr_protocols', '-G'),
-        ('sdr_device', ':00000102'),
+        ('sdr_protocols', ''), # Empty means default protocols
+        ('sdr_device', ':0'),  # Default to first device if serial fails
         ('mqtt_broker', os.getenv('MQTT_BROKER', '192.168.1.125')),
         ('mqtt_port', os.getenv('MQTT_PORT', '1883')),
         ('mqtt_user', os.getenv('MQTT_USER', '')),
@@ -115,12 +115,16 @@ def sdr_worker():
                 "-d", device,
                 "-f", freq,
                 "-g", gain,
-                protocols,
                 "-F", "json",
                 "-M", "level",
                 "-M", "metadata",
                 "-M", "time:iso8601"
             ]
+            
+            # Add protocols if specified
+            if protocols:
+                for p in protocols.split(','):
+                    cmd.extend(["-R", p.strip()])
             
             print(f"Starting SDR: {' '.join(cmd)}")
             sdr_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
