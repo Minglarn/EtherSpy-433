@@ -309,7 +309,20 @@ def sdr_worker():
                 # Default behavior: No -R flags means all default stable protocols are enabled.
                 pass
             
-            print(f"Starting SDR: {' '.join(cmd)}")
+            # Create a sanitized version of the command for logging
+            safe_cmd = []
+            for arg in cmd:
+                if arg.startswith('mqtt://') and (',user=' in arg or ',pass=' in arg):
+                    # Mask user and pass
+                    masked = arg
+                    import re
+                    masked = re.sub(r',user=[^,]+', ',user=***', masked)
+                    masked = re.sub(r',pass=[^,]+', ',pass=***', masked)
+                    safe_cmd.append(masked)
+                else:
+                    safe_cmd.append(arg)
+            
+            print(f"Starting SDR: {' '.join(safe_cmd)}")
             p = subprocess.Popen(
                 cmd, 
                 stdout=subprocess.PIPE, 
