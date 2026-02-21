@@ -60,7 +60,10 @@ def init_db():
         ('mqtt_port', os.getenv('MQTT_PORT', '1883')),
         ('mqtt_user', os.getenv('MQTT_USER', '')),
         ('mqtt_pass', os.getenv('MQTT_PASS', '')),
-        ('mqtt_topic', 'rtl_433[/model][/id]')
+        ('mqtt_topic', 'rtl_433[/model][/id]'),
+        ('sdr_autolevel', '1'),
+        ('sdr_noise', '1'),
+        ('sdr_starred', '0')
     ]
     for key, val in defaults:
         cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, val))
@@ -207,6 +210,13 @@ def sdr_worker():
                 "-M", "metadata",
                 "-M", "time:iso8601"
             ]
+
+            # Sensitivity and Noise settings
+            if get_setting('sdr_autolevel', '1') == '1':
+                cmd.extend(["-Y", "autolevel", "-Y", "squelch"])
+            
+            if get_setting('sdr_noise', '1') == '1':
+                cmd.extend(["-M", "noise"])
             
             # Optional MQTT Output
             if broker:
@@ -224,6 +234,14 @@ def sdr_worker():
             if p_clean and p_clean not in ["all", "-g"]:
                 for p in protocols.split(','):
                     cmd.extend(["-R", p.strip()])
+            else:
+                # Use -G for all standard decoders
+                cmd.append("-G")
+                # If starred protocols are requested, add them explicitly
+                if get_setting('sdr_starred', '0') == '1':
+                    starred = ["6", "7", "13", "14", "24", "37", "48", "61", "62", "64", "72", "86", "101", "106", "107", "117", "118", "123", "129", "150", "162", "169", "198", "200", "216", "233", "242", "245", "248", "260"]
+                    for sp in starred:
+                        cmd.extend(["-R", sp])
             
             print(f"Starting SDR: {' '.join(cmd)}")
             process_env = os.environ.copy()

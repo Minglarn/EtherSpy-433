@@ -484,9 +484,28 @@
                     <input type="text" id="sdr_gain">
                 </div>
             </div>
+            <div class="form-group"
+                style="background: rgba(255, 255, 255, 0.05); padding: 1rem; border-radius: 14px; margin-bottom: 2rem;">
+                <label style="color: var(--accent-color); font-weight: 600; margin-bottom: 1rem;">SDR
+                    OPTIMIZATION</label>
+                <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                    <label style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer; color: white;">
+                        <input type="checkbox" id="sdr_autolevel" style="width: auto;"> Auto-Sensitivity
+                        (Autolevel/Squelch)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer; color: white;">
+                        <input type="checkbox" id="sdr_noise" style="width: auto;"> Noise Floor Tracking
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer; color: white;">
+                        <input type="checkbox" id="sdr_starred" style="width: auto;"> Enable Starred Protocols
+                        (Experimental)
+                    </label>
+                </div>
+            </div>
+
             <div class="form-group">
-                <label>Custom Protocols</label>
-                <input type="text" id="sdr_protocols" placeholder="e.g. 19,25,31">
+                <label>Custom Protocols (Override)</label>
+                <input type="text" id="sdr_protocols" placeholder="e.g. 19,25,31 (Leave empty for ALL)">
             </div>
 
             <hr style="opacity: 0.05; margin: 2rem 0;">
@@ -544,15 +563,21 @@
             const settings = await resp.json();
             Object.keys(settings).forEach(key => {
                 const input = document.getElementById(key);
-                if (input) input.value = settings[key] || '';
+                if (input) {
+                    if (input.type === 'checkbox') input.checked = settings[key] === '1';
+                    else input.value = settings[key] || '';
+                }
             });
         }
 
         async function saveSettings() {
             const settings = {};
-            ['sdr_freq', 'sdr_protocols', 'sdr_device', 'sdr_gain', 'mqtt_broker', 'mqtt_port', 'mqtt_user', 'mqtt_pass', 'mqtt_topic'].forEach(k => {
+            ['sdr_freq', 'sdr_protocols', 'sdr_device', 'sdr_gain', 'mqtt_broker', 'mqtt_port', 'mqtt_user', 'mqtt_pass', 'mqtt_topic', 'sdr_autolevel', 'sdr_noise', 'sdr_starred'].forEach(k => {
                 const el = document.getElementById(k);
-                if (el) settings[k] = el.value;
+                if (el) {
+                    if (el.type === 'checkbox') settings[k] = el.checked ? '1' : '0';
+                    else settings[k] = el.value;
+                }
             });
 
             await fetch('/api/settings', {
@@ -589,56 +614,57 @@
         function timeAgo(date) {
             const seconds = Math.floor((new Date() - new Date(date)) / 1000);
             if (seconds < 10) return "Just now";
-            // Global state for expanded cards
-            let expandedCards = new Set();
+            if (seconds < 60) return seconds + "s";
+            if (seconds < 3600) return Math.floor(seconds / 60) + "m";
+            return Math.floor(seconds / 3600) + "h ago";
+        }
 
-            function toggleCard(sensorId) {
-                if (expandedCards.has(sensorId)) {
-                    expandedCards.delete(sensorId);
-                } else {
-                    expandedCards.add(sensorId);
-                }
-                // We use the full sensor list to re-render, but usually we just want to update this one.
-                // For simplicity and to avoid fetching again, we can just re-render everything
-                // or we could store the last sensor data globally.
-                if (window.lastSensors) renderSensors(window.lastSensors);
+        // Global state for expanded cards
+        let expandedCards = new Set();
+
+        function toggleCard(sensorId) {
+            if (expandedCards.has(sensorId)) {
+                expandedCards.delete(sensorId);
+            } else {
+                expandedCards.add(sensorId);
+            }
+            if (window.lastSensors) renderSensors(window.lastSensors);
+        }
+
+        function renderSensors(sensors) {
+            window.lastSensors = sensors;
+            if (!sensors || sensors.length === 0) {
+                sensorGrid.innerHTML = '<div class="card" style="grid-column: 1/-1; text-align: center;"><p>Waiting for sensor signals...</p></div>';
+                return;
             }
 
-            function renderSensors(sensors) {
-                window.lastSensors = sensors;
-                if (!sensors || sensors.length === 0) {
-                    sensorGrid.innerHTML = '<div class="card" style="grid-column: 1/-1; text-align: center;"><p>Waiting for sensor signals...</p></div>';
-                    return;
-                }
+            const sorted = sensors.sort((a, b) => {
+                const keyA = `${a.brand}${a.model}${a.sensor_id}`.toLowerCase();
+                const keyB = `${b.brand}${b.model}${b.sensor_id}`.toLowerCase();
+                return keyA.localeCompare(keyB);
+            });
 
-                const sorted = sensors.sort((a, b) => {
-                    const keyA = `${a.brand}${a.model}${a.sensor_id}`.toLowerCase();
-                    const keyB = `${b.brand}${b.model}${b.sensor_id}`.toLowerCase();
-                    return keyA.localeCompare(keyB);
-                });
+            sensorGrid.innerHTML = sorted.map(s => {
+                let fullData = {};
+                try { fullData = JSON.parse(s.raw_json); } catch (e) { fullData = s; }
 
-                sensorGrid.innerHTML = sorted.map(s => {
-                    let fullData = {};
-                    try { fullData = JSON.parse(s.raw_json); } catch (e) { fullData = s; }
+                const secondsSince = Math.floor((new Date() - new Date(s.timestamp + "Z")) / 1000);
+                let statusClass = 'status-online';
+                let cardOpacity = 1;
+                if (secondsSince > 300) { statusClass = 'status-stale'; cardOpacity = 0.7; }
+                if (secondsSince > 1800) { statusClass = 'status-offline'; cardOpacity = 0.5; }
 
-                    const secondsSince = Math.floor((new Date() - new Date(s.timestamp + "Z")) / 1000);
-                    let statusClass = 'status-online';
-                    let cardOpacity = 1;
-                    if (secondsSince > 300) { statusClass = 'status-stale'; cardOpacity = 0.7; }
-                    if (secondsSince > 1800) { statusClass = 'status-offline'; cardOpacity = 0.5; }
+                const skipFields = ['time', 'model', 'id', 'brand', 'channel', 'battery_ok', 'mic', 'mod', 'freq', 'rssi', 'snr', 'noise'];
+                const dataKeys = Object.keys(fullData).filter(k => !skipFields.includes(k.toLowerCase()));
 
-                    const skipFields = ['time', 'model', 'id', 'brand', 'channel', 'battery_ok', 'mic', 'mod', 'freq', 'rssi', 'snr', 'noise'];
-                    const dataKeys = Object.keys(fullData).filter(k => !skipFields.includes(k.toLowerCase()));
+                const isComplex = dataKeys.length > 3 || dataKeys.some(k => k.includes('wind') || k.includes('rain') || k.includes('pressure') || k.includes('tire'));
+                const isExpanded = expandedCards.has(s.sensor_id);
 
-                    // Determine if we show "Simple" (Large Temp) or "Metric List"
-                    const isComplex = dataKeys.length > 3 || dataKeys.some(k => k.includes('wind') || k.includes('rain') || k.includes('pressure') || k.includes('tire'));
-                    const isExpanded = expandedCards.has(s.sensor_id);
-
-                    let mainContent = '';
-                    if (!isComplex) {
-                        const temp = fullData.temperature_C || fullData.temperature_F || '--';
-                        const hum = fullData.humidity !== undefined ? fullData.humidity : '--';
-                        mainContent = `
+                let mainContent = '';
+                if (!isComplex) {
+                    const temp = fullData.temperature_C || fullData.temperature_F || '--';
+                    const hum = fullData.humidity !== undefined ? fullData.humidity : '--';
+                    mainContent = `
                         <div class="simple-metrics">
                             <div class="temp-large">${temp}<span class="unit">°C</span></div>
                             <div class="humid-overlay">
@@ -647,40 +673,38 @@
                             </div>
                         </div>
                     `;
-                    } else {
-                        // Split metrics into primary (top 4) and extra
-                        const primaryKeys = dataKeys.slice(0, 4);
-                        const extraKeys = dataKeys.slice(4);
+                } else {
+                    const primaryKeys = dataKeys.slice(0, 4);
+                    const extraKeys = dataKeys.slice(4);
 
-                        const renderMetricRow = (k) => {
-                            const info = FIELD_MAP[k.toLowerCase()] || { label: k.replace(/_/g, ' '), icon: 'activity' };
-                            let val = fullData[k];
-                            let unit = '';
-                            const lvk = k.toLowerCase();
-                            if (lvk.includes('_c')) unit = '°C';
-                            if (lvk.includes('_f')) unit = '°F';
-                            if (lvk.includes('m_s')) unit = 'm/s';
-                            if (lvk.includes('deg')) unit = '°';
-                            if (lvk.includes('mm')) unit = 'mm';
-                            if (lvk.includes('hpa')) unit = ' hPa';
-                            if (lvk.includes('psi')) unit = ' PSI';
-                            if (lvk.includes('humidity')) unit = '%';
-                            if (lvk.includes('lux')) unit = ' lx';
+                    const renderMetricRow = (k) => {
+                        const info = FIELD_MAP[k.toLowerCase()] || { label: k.replace(/_/g, ' '), icon: 'activity' };
+                        let val = fullData[k];
+                        let unit = '';
+                        const lvk = k.toLowerCase();
+                        if (lvk.includes('_c')) unit = '°C';
+                        if (lvk.includes('_f')) unit = '°F';
+                        if (lvk.includes('m_s')) unit = 'm/s';
+                        if (lvk.includes('deg')) unit = '°';
+                        if (lvk.includes('mm')) unit = 'mm';
+                        if (lvk.includes('hpa')) unit = ' hPa';
+                        if (lvk.includes('psi')) unit = ' PSI';
+                        if (lvk.includes('humidity')) unit = '%';
+                        if (lvk.includes('lux')) unit = ' lx';
 
-                            return `
+                        return `
                             <div class="metric-row">
                                 <div class="metric-label"><i data-lucide="${info.icon}"></i> ${info.label}</div>
                                 <div class="metric-value">${val}${unit}</div>
                             </div>
                         `;
-                        };
+                    };
 
-                        mainContent = `
+                    mainContent = `
                         <div class="metric-list">
                             ${primaryKeys.map(renderMetricRow).join('')}
-                            
                             ${extraKeys.length > 0 ? `
-                                <div class="metric-list-extra" style="display: ${isExpanded ? 'block' : 'none'};">
+                                <div class="metric-list-extra" style="display: ${isExpanded ? 'grid' : 'none'};">
                                     ${extraKeys.map(renderMetricRow).join('')}
                                 </div>
                                 <button class="toggle-details" onclick="toggleCard('${s.sensor_id}')">
@@ -690,9 +714,9 @@
                             ` : ''}
                         </div>
                     `;
-                    }
+                }
 
-                    return `
+                return `
                     <div class="card ${isExpanded ? 'expanded' : ''}" style="opacity: ${cardOpacity}">
                         <div class="card-header">
                             <span class="sensor-id">#${s.sensor_id}</span>
@@ -715,11 +739,14 @@
                         </div>
                     </div>
                 `;
-                }).join('');
+            }).join('');
 
-                lucide.createIcons();
-            }
+            lucide.createIcons();
+        }
 
+        const socket = io();
+
+        socket.on('connect', () => {
             console.log('Connected to Live Data Stream');
         });
 
