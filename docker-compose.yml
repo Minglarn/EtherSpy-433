@@ -4,6 +4,7 @@ services:
     image: ghcr.io/minglarn/etherspy-433/backend:latest
     container_name: etherspy-app
     restart: always
+    privileged: true
     ports:
       - "5000:5000"
     devices:

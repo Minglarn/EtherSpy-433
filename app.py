@@ -156,12 +156,17 @@ def sdr_worker():
             user = get_setting('mqtt_user', '')
             pw = get_setting('mqtt_pass', '')
 
+            # Heuristic: Fix serial ID if user forgot the colon
+            if len(device) > 2 and not device.startswith(':') and not device.isdigit():
+                device = f":{device}"
+
             # Basic command structure
             cmd = [
                 "rtl_433",
                 "-d", device,
                 "-f", freq,
                 "-g", gain,
+                "-F", "log", # Always show logs during startup
                 "-F", "json",
                 "-M", "level",
                 "-M", "metadata",
@@ -197,6 +202,7 @@ def sdr_worker():
                 line = line.strip()
                 if not line: continue
                 
+                # If it's data JSON
                 if line.startswith('{') and line.endswith('}'):
                     try:
                         data = json.loads(line)
@@ -205,15 +211,16 @@ def sdr_worker():
                     except json.JSONDecodeError:
                         pass
                 
-                if any(x in line for x in ["R82XX", "Exact sample rate", "Tuned to", "register_all", "MQTT"]):
-                    if "MQTT" in line: print(f"SDR Engine: {line}")
+                # Suppress only extremely noisy repeated logs
+                if any(x in line for x in ["Exact sample rate", "Tuned to"]):
                     continue
+                    
                 print(f"SDR Engine: {line}")
             
             sdr_process.wait()
             rc = sdr_process.returncode
             if rc != 0:
-                print(f"SDR Engine ERROR: Process exited with code {rc}.")
+                print(f"SDR Engine FATAL: Process exited with code {rc}. If it dies after 'Publishing MQTT', check your broker connectivity/credentials.")
         except Exception as e:
             print(f"SDR Worker Error: {e}")
         
