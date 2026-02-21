@@ -83,8 +83,9 @@ def save_to_db(data):
         
     try:
         # We need at least an ID or model to consider this valid sensor data
-        sensor_id = data.get('id') or data.get('sensor_id')
-        if not sensor_id:
+        sensor_id = data.get('id')
+        if sensor_id is None: sensor_id = data.get('sensor_id')
+        if sensor_id is None: # Accept 0, but not None
             return
 
         conn = get_db_connection()
@@ -95,6 +96,7 @@ def save_to_db(data):
         channel = str(data.get('channel', '0'))
         battery_ok = 1 if data.get('battery_ok') in ["OK", 1, True] else 0
         temp = data.get('temperature_C')
+        if temp is None: temp = data.get('temperature_F') # Fallback
         humidity = data.get('humidity')
         raw_json = json.dumps(data)
 
@@ -257,14 +259,26 @@ def get_sensor_data():
         conn = get_db_connection()
         cursor = conn.cursor()
         query = """
-            SELECT s1.* 
-            FROM sensors_data s1
-            INNER JOIN (
-                SELECT sensor_id, MAX(timestamp) as max_ts
+            SELECT * FROM sensors_data WHERE id IN (
+                SELECT id FROM (
+                    SELECT id, MAX(timestamp) OVER (PARTITION BY sensor_id) as max_ts
+                    FROM sensors_data
+                ) WHERE timestamp = max_ts
+            )
+            ORDER BY brand ASC, model ASC, sensor_id ASC
+        """
+        # Alternatively, a cleaner SQLite 3.7+ grouping:
+        # SELECT * FROM (SELECT * FROM sensors_data ORDER BY timestamp DESC) GROUP BY sensor_id
+        
+        # Using a more robust INNER JOIN version:
+        query = """
+            SELECT s1.* FROM sensors_data s1
+            JOIN (
+                SELECT sensor_id, MAX(timestamp) as ts
                 FROM sensors_data
                 GROUP BY sensor_id
-            ) s2 ON s1.sensor_id = s2.sensor_id AND s1.timestamp = s2.max_ts
-            ORDER BY s1.timestamp DESC
+            ) s2 ON s1.sensor_id = s2.sensor_id AND s1.timestamp = s2.ts
+            GROUP BY s1.sensor_id
         """
         cursor.execute(query)
         rows = [dict(row) for row in cursor.fetchall()]

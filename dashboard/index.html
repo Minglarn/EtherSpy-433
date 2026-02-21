@@ -414,6 +414,25 @@
             return name.replace(/Generic /gi, '').replace(/Generic/gi, '').trim();
         }
 
+        const FIELD_MAP = {
+            'temperature_c': 'Temp',
+            'temperature_f': 'Temp',
+            'temperature_1_c': 'Temp 1',
+            'temperature_2_c': 'Temp 2',
+            'humidity': 'Humid',
+            'humidity_1': 'Humid 1',
+            'humidity_2': 'Humid 2',
+            'pressure_hpa': 'Pressure',
+            'wind_avg_m_s': 'Wind Avg',
+            'wind_max_m_s': 'Wind Gust',
+            'wind_dir_deg': 'Wind Dir',
+            'rain_mm': 'Rain Total',
+            'rain_rate_mm_h': 'Rain Rate',
+            'uv': 'UV Index',
+            'lux': 'Light',
+            'moisture': 'Moisture'
+        };
+
         function timeAgo(date) {
             const seconds = Math.floor((new Date() - new Date(date)) / 1000);
             if (seconds < 10) return "Just now";
@@ -443,18 +462,35 @@
                     fullData = { temperature_C: s.temperature_c, humidity: s.humidity };
                 }
 
+                const secondsSince = Math.floor((new Date() - new Date(s.timestamp + "Z")) / 1000);
+                let statusClass = 'status-online';
+                let cardOpacity = 1;
+                if (secondsSince > 300) { // 5 minutes
+                    statusClass = 'status-stale';
+                    cardOpacity = 0.6;
+                }
+                if (secondsSince > 1800) { // 30 minutes
+                    statusClass = 'status-offline';
+                    cardOpacity = 0.4;
+                }
+
                 // Filter out metadata and secondary fields
-                const skipFields = ['time', 'model', 'id', 'brand', 'channel', 'battery_ok', 'mic', 'mod', 'freq', 'rssi', 'snr', 'noise', 'temperature_c', 'humidity'];
+                const skipFields = ['time', 'model', 'id', 'brand', 'channel', 'battery_ok', 'mic', 'mod', 'freq', 'rssi', 'snr', 'noise'];
+
+                // Group fields for cleaner display
                 const dynamicFields = Object.keys(fullData)
                     .filter(key => !skipFields.includes(key.toLowerCase()))
                     .map(key => {
                         let val = fullData[key];
-                        let label = key.replace(/_/g, ' ').replace('m s', 'm/s').toLowerCase();
+                        let label = FIELD_MAP[key.toLowerCase()] || key.replace(/_/g, ' ').toLowerCase();
                         let unit = '';
                         if (key.includes('_C')) unit = '°C';
+                        if (key.includes('_F')) unit = '°F';
                         if (key.includes('m_s')) unit = 'm/s';
                         if (key.includes('deg')) unit = '°';
                         if (key.includes('mm')) unit = 'mm';
+                        if (key.includes('humidity')) unit = '%';
+                        if (key.includes('hpa')) unit = ' hPa';
 
                         return `
                             <div class="data-row">
@@ -464,13 +500,8 @@
                         `;
                     }).join('');
 
-                const secondsSince = Math.floor((new Date() - new Date(s.timestamp + "Z")) / 1000);
-                let statusClass = 'status-online';
-                if (secondsSince > 120) statusClass = 'status-stale';
-                if (secondsSince > 600) statusClass = 'status-offline';
-
                 return `
-                    <div class="card">
+                    <div class="card" style="opacity: ${cardOpacity}">
                         <div class="card-header">
                             <div class="sensor-info">
                                 <span class="sensor-id">#${s.sensor_id}</span>
@@ -482,25 +513,15 @@
                             </div>
                         </div>
 
-                        <div class="main-metrics">
-                            <div class="temp-display">
-                                ${fullData.temperature_C !== undefined ? fullData.temperature_C : '--'}<span class="unit">°C</span>
-                            </div>
-                            <div class="humidity-display">
-                                <div class="humidity-val">${fullData.humidity !== undefined ? fullData.humidity + '%' : '--%'}</div>
-                                <div class="humidity-label">Humid</div>
-                            </div>
-                        </div>
-
-                        <div class="data-grid">
+                        <div class="data-grid" style="margin-top: 0.5rem;">
                             ${dynamicFields}
                         </div>
 
-                        <div class="card-footer">
-                            <span style="color: ${s.battery_ok ? 'var(--success)' : 'var(--danger)'}; opacity: 0.8;">
-                                ${s.battery_ok ? 'Battery OK' : 'Battery LOW'}
+                        <div class="card-footer" style="border-top: none; padding-top: 0.25rem;">
+                            <span style="color: ${s.battery_ok ? 'var(--success)' : 'var(--danger)'}; opacity: 0.7; font-size: 0.65rem;">
+                                ${s.battery_ok ? 'BATT OK' : 'BATT LOW'}
                             </span>
-                            <span style="opacity: 0.4;">CH ${s.channel || 0}</span>
+                            <span style="opacity: 0.3; font-size: 0.65rem;">CH ${s.channel || 0}</span>
                         </div>
                     </div>
                 `;
