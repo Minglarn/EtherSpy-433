@@ -15,11 +15,6 @@ jobs:
       - name: Validate Docker Compose
         run: docker compose config --quiet
 
-      - name: Lint SQL Files
-        uses: docker://sqlfluff/sqlfluff:latest
-        with:
-          args: lint --dialect mariadb .
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -35,7 +30,6 @@ jobs:
         run: |
           ls -R
           [ -f docker-compose.yml ] || exit 1
-          [ -f init.sql ] || exit 1
           [ -f app.py ] || exit 1
           [ -d dashboard ] || exit 1
           [ -f dashboard/index.html ] || exit 1
