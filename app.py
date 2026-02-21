@@ -82,8 +82,9 @@ def init_db():
     for key, val in defaults:
         cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, val))
     
-    # Migration: Update old default topic to new better one
-    cursor.execute("UPDATE settings SET value = 'rtl_433[/model][/id][/channel][/address]' WHERE key = 'mqtt_topic' AND value = 'rtl_433[/model][/id]'")
+    # Migration: Update old default topic to new better one that includes fallback fields
+    new_topic = 'rtl_433[/model][/id][/channel][/address][/housecode]'
+    cursor.execute("UPDATE settings SET value = ? WHERE key = 'mqtt_topic' AND value IN ('rtl_433[/model][/id]', 'rtl_433[/model][/id][/channel][/address]')", (new_topic,))
     
     conn.commit()
     conn.close()
@@ -259,7 +260,7 @@ def sdr_worker():
             port = get_setting('mqtt_port', '1883')
             user = get_setting('mqtt_user', '')
             pw = get_setting('mqtt_pass', '')
-            topic = get_setting('mqtt_topic', 'rtl_433[/model][/id][/channel][/address]')
+            topic = get_setting('mqtt_topic', 'rtl_433[/model][/id][/channel][/address][/housecode]')
 
             # Heuristic: Fix serial ID if user forgot the colon
             if len(device) > 2 and not device.startswith(':') and not device.isdigit():
