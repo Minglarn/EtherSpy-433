@@ -6,9 +6,21 @@ services:
     restart: always
     devices:
       - "/dev/bus/usb:/dev/bus/usb"
+    environment:
+      - TZ=Europe/Stockholm
+      - MQTT_USER=${MQTT_USER:-}
+      - MQTT_PASS=${MQTT_PASS:-}
+      - SDR_FREQ=${SDR_FREQ:-433.92M}
+      - SDR_GAIN=${SDR_GAIN:-auto}
+      - SDR_PROTOCOLS=${SDR_PROTOCOLS:--G}
     command:
       - "-d"
       - "${SDR_DEVICE:-:00000102}"
+      - "-f"
+      - "${SDR_FREQ:-433.92M}"
+      - "-g"
+      - "${SDR_GAIN:-auto}"
+      - "${SDR_PROTOCOLS:--G}"
       - "-F"
       - "mqtt://${MQTT_BROKER:-192.168.1.125}:1883,user=${MQTT_USER:-},pass=${MQTT_PASS:-},retain=0,devices=rtl_433[/model][/id]"
       - "-M"
@@ -17,10 +29,6 @@ services:
       - "metadata"
       - "-M"
       - "time:iso8601"
-    environment:
-      - TZ=Europe/Stockholm
-      - MQTT_USER=${MQTT_USER:-}
-      - MQTT_PASS=${MQTT_PASS:-}
 
   # Python Backend & Dashboard Web Server (Automated GHCR Image)
   etherspy-backend:
