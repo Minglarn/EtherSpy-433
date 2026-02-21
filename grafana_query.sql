@@ -2,13 +2,13 @@
 -- Set the "Time series" format in Grafana and use "sensor_id" as the metric/label.
 
 SELECT
-    timestamp AS "time",
-    temperature_c AS "Temperature (°C)",
-    sensor_id AS "metric"
-FROM sensors_data
+    `timestamp` AS `time`,
+    `temperature_c` AS `Temperature (°C)`,
+    `sensor_id` AS `metric`
+FROM `sensors_data`
 WHERE
-    timestamp >= NOW() - INTERVAL 24 HOUR
-ORDER BY timestamp ASC;
+    `timestamp` >= NOW() - INTERVAL 24 HOUR
+ORDER BY `timestamp` ASC;
 
 -- For a table with averages grouped by hour:
 /*
