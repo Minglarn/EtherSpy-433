@@ -191,10 +191,6 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
         label {
             display: block;
             margin-bottom: 0.5rem;
@@ -293,48 +289,50 @@
             <div class="header-actions">
                 <button class="settings-btn" onclick="toggleModal(true)">⚙️ Settings</button>
                 <div class="status-badge">
-                    <div class="pulse"></div> Live Monitoring
+                    <div class="pulse"></div> Live
                 </div>
             </div>
         </header>
 
         <div class="grid" id="sensorGrid">
             <div class="card" style="grid-column: 1/-1; text-align: center; opacity: 0.6;">
-                <p>Initializing SDR Stream...</p>
+                <p>Establishing contact with SDR stack...</p>
             </div>
         </div>
 
         <div style="margin-top: 4rem; text-align: center;">
-            <button class="refresh-btn" onclick="fetchSensorData()">Refresh Data</button>
+            <button class="refresh-btn" onclick="fetchSensorData()">Scan Now</button>
         </div>
     </div>
 
     <!-- Settings Modal -->
     <div class="modal" id="settingsModal">
         <div class="modal-content">
-            <h2 style="margin-bottom: 2rem;">SDR Configurations</h2>
+            <h2 style="margin-bottom: 1.5rem; font-size: 1.5rem;">SDR & MQTT Settings</h2>
             <div class="form-group">
                 <label>Frequency (e.g. 433.92M)</label>
                 <input type="text" id="sdr_freq">
             </div>
-            <div class="form-group">
-                <label>Protocols (e.g. -G for all)</label>
-                <input type="text" id="sdr_protocols">
-            </div>
-            <div class="form-group">
-                <label>SDR Device (Serial ID)</label>
-                <input type="text" id="sdr_device">
-            </div>
-            <div class="form-group">
-                <label>Gain (auto or dB)</label>
-                <input type="text" id="sdr_gain">
-            </div>
-            <hr style="opacity: 0.1; margin: 2rem 0;">
-            <h3 style="margin-bottom: 1rem; font-size: 1rem; color: var(--accent-color);">MQTT Publishing (Optional)
-            </h3>
-            <div class="form-row" style="display: grid; grid-template-columns: 3fr 1fr; gap: 1rem;">
+            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                 <div class="form-group">
-                    <label>Broker IP</label>
+                    <label>SDR Device (Serial ID)</label>
+                    <input type="text" id="sdr_device">
+                </div>
+                <div class="form-group">
+                    <label>Gain (auto/dB)</label>
+                    <input type="text" id="sdr_gain">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Custom Protocols (leave empty for all)</label>
+                <input type="text" id="sdr_protocols" placeholder="e.g. 19,25,31">
+            </div>
+
+            <hr style="opacity: 0.1; margin: 1.5rem 0;">
+
+            <div class="form-row" style="display: grid; grid-template-columns: 3fr 1.5fr; gap: 1rem;">
+                <div class="form-group">
+                    <label>MQTT Broker IP</label>
                     <input type="text" id="mqtt_broker">
                 </div>
                 <div class="form-group">
@@ -344,7 +342,7 @@
             </div>
             <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                 <div class="form-group">
-                    <label>Username</label>
+                    <label>MQTT User</label>
                     <input type="text" id="mqtt_user">
                 </div>
                 <div class="form-group">
@@ -353,7 +351,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>MQTT Topic Prefix (e.g. home/sensors[/model][/id])</label>
+                <label>MQTT Topic Prefix</label>
                 <input type="text" id="mqtt_topic" placeholder="rtl_433[/model][/id]">
             </div>
             <div class="modal-actions">
@@ -385,9 +383,7 @@
             const settings = await resp.json();
             Object.keys(settings).forEach(key => {
                 const input = document.getElementById(key);
-                if (input) {
-                    input.value = settings[key] || '';
-                }
+                if (input) input.value = settings[key] || '';
             });
         }
 
@@ -410,24 +406,36 @@
                 body: JSON.stringify(settings)
             });
             toggleModal(false);
-            alert("Settings applied. SDR stack is restarting...");
+            fetchSensorData();
+        }
+
+        function cleanName(name) {
+            if (!name) return 'Unknown';
+            return name.replace(/Generic /gi, '').replace(/Generic/gi, '').trim();
         }
 
         function timeAgo(date) {
             const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-            if (seconds < 5) return "Just now";
-            if (seconds < 60) return seconds + "s ago";
-            if (seconds < 3600) return Math.floor(seconds / 60) + "m ago";
-            return Math.floor(seconds / 3600) + "h ago";
+            if (seconds < 10) return "Just now";
+            if (seconds < 60) return seconds + "s";
+            if (seconds < 3600) return Math.floor(seconds / 60) + "m";
+            return Math.floor(seconds / 3600) + "h";
         }
 
         function renderSensors(sensors) {
             if (!sensors || sensors.length === 0) {
-                sensorGrid.innerHTML = '<div class="card" style="grid-column: 1/-1; text-align: center;"><p>No sensors detected. Check settings or wait for traffic...</p></div>';
+                sensorGrid.innerHTML = '<div class="card" style="grid-column: 1/-1; text-align: center;"><p>Watching for signals...</p></div>';
                 return;
             }
 
-            sensorGrid.innerHTML = sensors.map(s => {
+            // STABLE SORT: Brand > Model > ID
+            const sorted = sensors.sort((a, b) => {
+                const keyA = `${a.brand}${a.model}${a.sensor_id}`.toLowerCase();
+                const keyB = `${b.brand}${b.model}${b.sensor_id}`.toLowerCase();
+                return keyA.localeCompare(keyB);
+            });
+
+            sensorGrid.innerHTML = sorted.map(s => {
                 let fullData = {};
                 try {
                     fullData = JSON.parse(s.raw_json);
@@ -435,62 +443,64 @@
                     fullData = { temperature_C: s.temperature_c, humidity: s.humidity };
                 }
 
-                // Filter out metadata and already handled fields for the list
-                const skipFields = ['time', 'model', 'id', 'brand', 'channel', 'battery_ok', 'mic', 'mod', 'freq', 'rssi', 'snr', 'noise'];
+                // Filter out metadata and secondary fields
+                const skipFields = ['time', 'model', 'id', 'brand', 'channel', 'battery_ok', 'mic', 'mod', 'freq', 'rssi', 'snr', 'noise', 'temperature_c', 'humidity'];
                 const dynamicFields = Object.keys(fullData)
                     .filter(key => !skipFields.includes(key.toLowerCase()))
                     .map(key => {
                         let val = fullData[key];
-                        let label = key.replace(/_/g, ' ').toUpperCase();
+                        let label = key.replace(/_/g, ' ').replace('m s', 'm/s').toLowerCase();
                         let unit = '';
                         if (key.includes('_C')) unit = '°C';
-                        if (key.includes('m_s')) unit = ' m/s';
+                        if (key.includes('m_s')) unit = 'm/s';
                         if (key.includes('deg')) unit = '°';
-                        if (key.includes('humidity')) unit = '%';
-                        if (key.includes('mm')) unit = ' mm';
+                        if (key.includes('mm')) unit = 'mm';
 
                         return `
-                            <div class="data-item">
-                                <span style="font-size: 0.7rem; display: block; opacity: 0.5;">${label}</span>
-                                <span style="font-size: 1.1rem; color: #fff;">${val}${unit}</span>
+                            <div class="data-row">
+                                <span class="data-label">${label}</span>
+                                <span class="data-val">${val}${unit}</span>
                             </div>
                         `;
                     }).join('');
 
-                const lastSeen = timeAgo(s.timestamp + "Z"); // Add Z for UTC if needed, or adjust to local
+                const secondsSince = Math.floor((new Date() - new Date(s.timestamp + "Z")) / 1000);
+                let statusClass = 'status-online';
+                if (secondsSince > 120) statusClass = 'status-stale';
+                if (secondsSince > 600) statusClass = 'status-offline';
 
                 return `
                     <div class="card">
                         <div class="card-header">
-                            <div>
-                                <div class="sensor-tag">${s.brand || 'Generic'}</div>
-                                <div style="font-size: 1.1rem; font-weight: 600;">${s.model || 'Unknown Device'}</div>
+                            <div class="sensor-info">
+                                <span class="sensor-id">#${s.sensor_id}</span>
+                                <h3>${cleanName(s.brand)} ${cleanName(s.model)}</h3>
                             </div>
-                            <div style="text-align: right;">
-                                <div class="sensor-tag" style="opacity: 0.4;">ID: ${s.sensor_id}</div>
-                                <div style="font-size: 0.7rem; color: var(--accent-color);">${lastSeen}</div>
+                            <div class="last-seen">
+                                <span class="status-dot ${statusClass}"></span>
+                                <span>${timeAgo(s.timestamp + "Z")}</span>
                             </div>
                         </div>
 
-                        <div class="main-display" style="display: flex; align-items: center; justify-content: space-between; margin: 1rem 0;">
-                            <div class="value-display" style="margin:0;">
+                        <div class="main-metrics">
+                            <div class="temp-display">
                                 ${fullData.temperature_C !== undefined ? fullData.temperature_C : '--'}<span class="unit">°C</span>
                             </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 1.2rem; opacity: 0.8;">${fullData.humidity !== undefined ? fullData.humidity + '%' : '--%'}</div>
-                                <div style="font-size: 0.7rem; opacity: 0.5;">HUMIDITY</div>
+                            <div class="humidity-display">
+                                <div class="humidity-val">${fullData.humidity !== undefined ? fullData.humidity + '%' : '--%'}</div>
+                                <div class="humidity-label">Humid</div>
                             </div>
                         </div>
 
-                        <div class="dynamic-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                        <div class="data-grid">
                             ${dynamicFields}
                         </div>
 
-                        <div class="card-footer" style="padding-top: 0.5rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
-                            <span style="color: ${s.battery_ok ? 'var(--success)' : 'var(--danger)'}">
-                                ${s.battery_ok ? '● Battery OK' : '● Battery LOW'}
+                        <div class="card-footer">
+                            <span style="color: ${s.battery_ok ? 'var(--success)' : 'var(--danger)'}; opacity: 0.8;">
+                                ${s.battery_ok ? 'Battery OK' : 'Battery LOW'}
                             </span>
-                            <span style="opacity: 0.3;">Channel ${s.channel || 0}</span>
+                            <span style="opacity: 0.4;">CH ${s.channel || 0}</span>
                         </div>
                     </div>
                 `;
