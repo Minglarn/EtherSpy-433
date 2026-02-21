@@ -111,8 +111,8 @@
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 1rem;
         }
 
         .card {
@@ -120,13 +120,13 @@
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 1.5rem;
+            border-radius: 16px;
+            padding: 1rem;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 0.7rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
@@ -248,7 +248,7 @@
         }
 
         .card h3 {
-            font-size: 1.25rem;
+            font-size: 1.1rem;
             font-weight: 600;
             color: white;
             line-height: 1.2;
@@ -288,7 +288,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
         }
 
         .metric-label {
@@ -696,13 +696,25 @@
                     const EXCLUDE = ['time', 'brand', 'model', 'id', 'sensor_id', 'raw_json', 'timestamp', 'alias', 'battery_ok'];
                     lastSensorData[s.sensor_id] = s;
 
+                    const keys = Object.keys(full).filter(k => !EXCLUDE.includes(k.toLowerCase()));
+                    const isExpanded = expandedCards.has(s.sensor_id);
+                    const visibleKeys = isExpanded ? keys : keys.slice(0, 4);
+                    const hasMore = keys.length > 4;
+
                     return `
                         <div class="card ${updated && old.timestamp ? 'flash-update' : ''}" onclick="editAlias('${s.sensor_id}','${s.alias || ''}')" style="cursor:pointer">
                             <div class="card-header"><span class="sensor-id">#${s.sensor_id}</span><div class="last-seen"><div class="status-dot ${updated ? 'status-online' : 'status-stale'}"></div>${timeAgo(s.timestamp + "Z")}</div></div>
                             <h3>${s.alias || cleanName(s.brand + ' ' + s.model)} <i data-lucide="edit-3" style="width:12px;opacity:0.3"></i></h3>
-                            <div class="simple-metrics" style="margin-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem;">
-                                ${Object.keys(full).filter(k => !EXCLUDE.includes(k.toLowerCase())).map(k => row(k, full[k])).join('')}
+                            <div class="simple-metrics" style="margin-top: 0.4rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.7rem;">
+                                ${visibleKeys.map(k => row(k, full[k])).join('')}
                             </div>
+                            ${hasMore ? `
+                                <div style="text-align: center; margin-top: 0.2rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.4rem;">
+                                    <button class="btn-text" onclick="event.stopPropagation(); toggleCard('${s.sensor_id}')" style="font-size: 0.75rem; color: var(--accent-color); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; margin: 0 auto;">
+                                        ${isExpanded ? 'Visa färre <i data-lucide="chevron-up"></i>' : `Visa ${keys.length - 4} till <i data-lucide="chevron-down"></i>`}
+                                    </button>
+                                </div>
+                            ` : ''}
                         </div>`;
                 }).join('');
                 lucide.createIcons();
