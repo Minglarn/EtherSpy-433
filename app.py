@@ -71,7 +71,7 @@ def init_db():
         ('mqtt_port', os.getenv('MQTT_PORT', '1883')),
         ('mqtt_user', os.getenv('MQTT_USER', '')),
         ('mqtt_pass', os.getenv('MQTT_PASS', '')),
-        ('mqtt_topic', 'rtl_433[/model][/id]'),
+        ('mqtt_topic', 'rtl_433[/model][/id][/channel][/address]'),
         ('sdr_autolevel', '1'),
         ('sdr_noise', '1'),
         ('sdr_starred', '0'),
