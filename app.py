@@ -77,11 +77,18 @@ def get_setting(key, default=None):
     return row['value'] if row else default
 
 def save_to_db(data):
+    if not isinstance(data, dict):
+        return # Ignore non-JSON data (individual values from MQTT)
+        
     try:
+        # We need at least an ID or model to consider this valid sensor data
+        sensor_id = data.get('id') or data.get('sensor_id')
+        if not sensor_id:
+            return
+
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        sensor_id = data.get('id', 'unknown')
         brand = data.get('brand', 'Generic')
         model = data.get('model', 'Unknown')
         channel = str(data.get('channel', '0'))
@@ -94,11 +101,12 @@ def save_to_db(data):
             INSERT INTO sensors_data 
             (sensor_id, brand, model, channel, battery_ok, temperature_c, humidity, raw_json) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (sensor_id, brand, model, channel, battery_ok, temp, humidity, raw_json))
+        """, (str(sensor_id), brand, model, channel, battery_ok, temp, humidity, raw_json))
         conn.commit()
         conn.close()
     except Exception as e:
         print(f"Error inserting into SQLite: {e}")
+        # print(f"Offending data: {data}") # Debug
 
 # MQTT Subscriber (for receiving from broker)
 def mqtt_subscriber():
