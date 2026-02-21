@@ -1,9 +1,10 @@
 version: '3.8'
 
 services:
+  # SDR Signal Receiver
   rtl_433:
     image: hertzg/rtl_433:latest
-    container_name: etherspy-433
+    container_name: etherspy-sdr
     restart: always
     devices:
       - "/dev/bus/usb:/dev/bus/usb"
@@ -18,7 +19,10 @@ services:
       - "time:iso8601"
     environment:
       - TZ=Europe/Stockholm
+    depends_on:
+      - mqtt-broker
 
+  # Python Backend & Dashboard Web Server
   etherspy-backend:
     build: .
     container_name: etherspy-backend
@@ -30,11 +34,14 @@ services:
       - DB_NAME=etherspy
       - DB_USER=dbuser
       - DB_PASS=dbpassword
+      - MQTT_BROKER=mqtt-broker
     depends_on:
       - mariadb
+      - mqtt-broker
 
+  # Internal Database
   mariadb:
-    image: mariadb:latest
+    image: mariadb:10.11
     container_name: etherspy-mariadb
     restart: always
     environment:
@@ -46,6 +53,7 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - mariadb-data:/var/lib/mysql
 
+  # Internal Message Broker
   mqtt-broker:
     image: eclipse-mosquitto:latest
     container_name: etherspy-mqtt
@@ -55,6 +63,7 @@ services:
     volumes:
       - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
 
+  # Visualization Dashboard
   grafana:
     image: grafana/grafana-oss:latest
     container_name: etherspy-grafana
@@ -68,6 +77,5 @@ services:
       - grafana-storage:/var/lib/grafana
 
 volumes:
+  mariadb-data:
   grafana-storage:
-
-    # Note: Ensure RTL-SDR v4 is plugged in and drivers are blacklisted on host.
