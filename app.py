@@ -269,10 +269,7 @@ def sdr_worker():
                     except json.JSONDecodeError:
                         pass
                 
-                # Suppress only extremely noisy repeated logs
-                if any(x in line for x in ["Exact sample rate", "Tuned to"]):
-                    continue
-                    
+                # Print all other engine output
                 print(f"SDR Engine: {line}")
             
             sdr_process.wait()
