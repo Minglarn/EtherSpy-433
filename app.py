@@ -169,9 +169,10 @@ def mqtt_subscriber():
         user = get_setting('mqtt_user', '')
         pw = get_setting('mqtt_pass', '')
 
+        # Try to connect/reconnect if needed
         if broker and broker != last_broker:
             try:
-                print(f"MQTT Subscriber: Connecting to {broker}...")
+                print(f"MQTT Subscriber: Connecting to {broker}:{port}...")
                 if user and pw:
                     client.username_pw_set(user, pw)
                 client.disconnect()
@@ -180,8 +181,11 @@ def mqtt_subscriber():
             except Exception as e:
                 print(f"MQTT Subscriber Error: {e}")
         
-        client.loop(timeout=1.0)
-        time.sleep(1)
+        # In eventlet, we should use a shorter timeout or loop_start
+        # but since we are in a background task, loop(0.1) + sleep is okay
+        if last_broker:
+            client.loop(timeout=0.1)
+        eventlet.sleep(1) # Use eventlet.sleep for better yielding
 
 # SDR Management
 def sdr_worker():
@@ -236,15 +240,22 @@ def sdr_worker():
             # Note: -G is deprecated and causes exits in newer versions. 
             # If empty, 'all', or '-G' is requested, we use the 90+ default decoders by omitting the flag.
             p_clean = protocols.strip().lower()
-            if p_clean and p_clean not in ["all", "-g"]:
+            if p_clean and p_clean not in ["all", "none"]:
+                # Custom list: enables ONLY these
                 for p in protocols.split(','):
-                    cmd.extend(["-R", p.strip()])
+                    if p.strip():
+                        cmd.extend(["-R", p.strip()])
+            elif p_clean == "all":
+                # Explicitly ALL
+                cmd.extend(["-R", "all"])
             else:
-                # Use -R all for EVERYTHING (standards + starred)
-                # Note: -G is removed in newer versions, -R all is the replacement.
-                if get_setting('sdr_starred', '0') == '1':
+                # Based on toggle
+                if str(get_setting('sdr_starred', '0')) == '1':
+                    print("SDR Worker: Starred protocols enabled. Using -R all.")
                     cmd.extend(["-R", "all"])
-                # If starred is off, we pass NO -R flags, which enables all default decoders.
+                else:
+                    print("SDR Worker: Standard protocols only. Omitting -R flags.")
+                    # Omitting -R flags in rtl_433 enables all standard protocols by default.
             
             print(f"Starting SDR: {' '.join(cmd)}")
             process_env = os.environ.copy()
