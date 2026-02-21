@@ -52,6 +52,13 @@ def init_db():
             value TEXT
         )
     """)
+    # Sensor Aliases Table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS sensor_aliases (
+            sensor_id TEXT PRIMARY KEY,
+            alias TEXT
+        )
+    """)
     # Default Settings
     defaults = [
         ('sdr_freq', '433.92M'),
@@ -67,7 +74,8 @@ def init_db():
         ('sdr_noise', '1'),
         ('sdr_starred', '0'),
         ('sdr_samplerate', '1024k'),
-        ('sdr_celsius', '1')
+        ('sdr_celsius', '1'),
+        ('sdr_stale_threshold', '60')
     ]
     for key, val in defaults:
         cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, val))
@@ -136,15 +144,15 @@ def save_to_db(data):
         """, (str(sensor_id), brand, model, channel, battery_ok, temp, humidity, raw_json))
         conn.commit()
         
-        # Fetch the complete sensor list and emit to all clients
-        # We emit the whole list so the frontend can sort and render easily
+        # Fetch the complete sensor list with aliases
         cursor.execute("""
-            SELECT s1.* FROM sensors_data s1
+            SELECT s1.*, a.alias FROM sensors_data s1
             JOIN (
                 SELECT sensor_id, MAX(timestamp) as ts
                 FROM sensors_data
                 GROUP BY sensor_id
             ) s2 ON s1.sensor_id = s2.sensor_id AND s1.timestamp = s2.ts
+            LEFT JOIN sensor_aliases a ON s1.sensor_id = a.sensor_id
             GROUP BY s1.sensor_id
         """)
         all_sensors = [dict(row) for row in cursor.fetchall()]
@@ -370,6 +378,27 @@ def manage_settings():
     conn.close()
     
     restart_sdr()
+    return jsonify({'status': 'success'})
+
+@app.route('/api/aliases', methods=['GET', 'POST'])
+def manage_aliases():
+    if request.method == 'GET':
+        conn = get_db_connection()
+        rows = conn.execute("SELECT * FROM sensor_aliases").fetchall()
+        conn.close()
+        return jsonify({row['sensor_id']: row['alias'] for row in rows})
+    
+    data = request.json
+    sensor_id = data.get('sensor_id')
+    alias = data.get('alias')
+    
+    conn = get_db_connection()
+    if alias:
+        conn.execute("INSERT OR REPLACE INTO sensor_aliases (sensor_id, alias) VALUES (?, ?)", (str(sensor_id), alias))
+    else:
+        conn.execute("DELETE FROM sensor_aliases WHERE sensor_id = ?", (str(sensor_id),))
+    conn.commit()
+    conn.close()
     return jsonify({'status': 'success'})
 
 @app.route('/')

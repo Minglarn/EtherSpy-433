@@ -6,9 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EtherSpy-433 | SDR Monitoring</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Socket.IO Client -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         :root {
@@ -20,6 +18,8 @@
             --success: #10b981;
             --warning: #f59e0b;
             --glow-color: rgba(56, 189, 248, 0.3);
+            --input-bg: rgba(0, 0, 0, 0.2);
+            --input-border: rgba(255, 255, 255, 0.1);
         }
 
         * {
@@ -111,8 +111,8 @@
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 1.2rem;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
         }
 
         .card {
@@ -121,12 +121,12 @@
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 20px;
-            padding: 1.2rem;
+            padding: 1.5rem;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             display: flex;
             flex-direction: column;
-            gap: 0.8rem;
+            gap: 1rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
@@ -136,16 +136,83 @@
             box-shadow: 0 0 25px var(--glow-color);
         }
 
-        /* Neon Line Effect */
-        .card::after {
-            content: '';
-            position: absolute;
-            top: -1px;
-            left: 15%;
-            right: 15%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
-            opacity: 0.5;
+        /* Flash Animation on Update */
+        @keyframes flash-update {
+            0% {
+                box-shadow: 0 0 0px var(--accent-color);
+                border-color: var(--accent-color);
+            }
+
+            50% {
+                box-shadow: 0 0 30px var(--accent-color);
+                border-color: var(--accent-color);
+            }
+
+            100% {
+                box-shadow: 0 0 25px var(--glow-color);
+                border-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+
+        .flash-update {
+            animation: flash-update 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Battery Low Aura */
+        @keyframes battery-pulse {
+            0% {
+                box-shadow: 0 0 5px var(--danger);
+            }
+
+            50% {
+                box-shadow: 0 0 20px var(--danger);
+            }
+
+            100% {
+                box-shadow: 0 0 5px var(--danger);
+            }
+        }
+
+        .battery-low {
+            border-color: var(--danger) !important;
+            animation: battery-pulse 2s infinite ease-in-out;
+        }
+
+        /* Trend Indicators */
+        .trend-up {
+            color: var(--danger);
+            margin-left: 0.3rem;
+            font-size: 0.8em;
+        }
+
+        .trend-down {
+            color: var(--accent-color);
+            margin-left: 0.3rem;
+            font-size: 0.8em;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.5rem;
+        }
+
+        .tab {
+            padding: 0.5rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.5);
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: var(--accent-color);
+            color: white;
+            box-shadow: 0 0 15px var(--glow-color);
         }
 
         .card-header {
@@ -191,14 +258,12 @@
         }
 
         .card h3 {
-            font-size: 1.2rem;
+            font-size: 1.25rem;
             font-weight: 600;
-            margin-top: -0.2rem;
             color: white;
             line-height: 1.2;
         }
 
-        /* Large Metrics (Simple View) */
         .simple-metrics {
             display: flex;
             flex-direction: column;
@@ -207,7 +272,7 @@
         }
 
         .temp-large {
-            font-size: 3.8rem;
+            font-size: 3.5rem;
             font-weight: 300;
             display: flex;
             align-items: baseline;
@@ -215,7 +280,7 @@
         }
 
         .temp-large .unit {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             color: rgba(255, 255, 255, 0.4);
             font-weight: 400;
         }
@@ -227,65 +292,6 @@
             color: var(--accent-color);
             font-size: 1.1rem;
             font-weight: 500;
-        }
-
-        .humid-overlay i {
-            width: 18px;
-        }
-
-        /* Metric List View (Clean Single Column) */
-        .metric-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.6rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            padding-top: 1rem;
-        }
-
-        .metric-list.full-width {
-            grid-template-columns: 1fr;
-        }
-
-        .metric-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.85rem;
-        }
-
-        .metric-list-extra {
-            grid-column: 1 / -1;
-            display: none;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem 1.5rem;
-            margin-top: 1rem;
-            border-top: 1px dotted rgba(255, 255, 255, 0.1);
-            padding-top: 1rem;
-        }
-
-        .card.expanded .metric-list-extra {
-            display: grid;
-        }
-
-        .toggle-details {
-            grid-column: 1 / -1;
-            background: transparent;
-            border: none;
-            color: var(--accent-color);
-            font-size: 0.75rem;
-            font-weight: 600;
-            cursor: pointer;
-            padding: 0.5rem 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.3rem;
-            opacity: 0.7;
-            transition: opacity 0.3s;
-        }
-
-        .toggle-details:hover {
-            opacity: 1;
         }
 
         .metric-row {
@@ -323,18 +329,6 @@
             border-top: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .battery-pill {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-
-        .ch-label {
-            opacity: 0.4;
-        }
-
         /* Modals */
         .modal {
             display: none;
@@ -343,8 +337,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(15, 23, 42, 0.9);
-            backdrop-filter: blur(12px);
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(15px);
             z-index: 1000;
             align-items: center;
             justify-content: center;
@@ -354,10 +348,11 @@
             background: #1e293b;
             padding: 2.5rem;
             border-radius: 32px;
-            width: 90%;
-            max-width: 500px;
+            width: 95%;
+            max-width: 550px;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .form-group {
@@ -371,33 +366,29 @@
             color: rgba(255, 255, 255, 0.5);
         }
 
-        input,
+        input[type="text"],
+        input[type="number"],
+        input[type="password"],
         select {
             width: 100%;
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
             padding: 0.8rem 1.2rem;
             border-radius: 14px;
             color: white;
             font-size: 1rem;
             outline: none;
-            transition: border-color 0.3s;
-            appearance: none;
-            -webkit-appearance: none;
         }
 
-        option {
-            background: #1e293b;
-            color: white;
-        }
-
-        input:focus,
-        select:focus {
-            border-color: var(--accent-color);
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--accent-color);
         }
 
         .btn {
-            padding: 0.9rem 1.8rem;
+            padding: 1rem 2rem;
             border-radius: 14px;
             border: none;
             font-weight: 600;
@@ -416,6 +407,18 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         @keyframes pulse-ring {
             0% {
                 box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
@@ -427,18 +430,6 @@
 
             100% {
                 box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-            }
-        }
-
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
             }
         }
     </style>
@@ -455,22 +446,35 @@
                     <i data-lucide="settings"></i> Settings
                 </button>
                 <div class="status-badge">
-                    <div class="pulse"></div> Live Monitor
+                    <div class="pulse"></div> <span id="liveIndicator">Live Monitor</span>
                 </div>
             </div>
         </header>
 
-        <div class="grid" id="sensorGrid">
-            <div class="card" style="grid-column: 1/-1; text-align: center; opacity: 0.6; padding: 4rem;">
-                <p>Establishing contact with SDR stack...</p>
+        <div class="tabs">
+            <div id="tab-active" class="tab active" onclick="switchTab('active')">Active Sensors</div>
+            <div id="tab-lost" class="tab" onclick="switchTab('lost')">Lost / Stale</div>
+        </div>
+
+        <div id="active-view">
+            <div class="grid" id="sensorGrid">
+                <div class="card" style="grid-column: 1/-1; text-align: center; opacity: 0.6; padding: 4rem;">
+                    <p>Scanning for signals...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="lost-view" style="display: none;">
+            <div class="grid" id="lostGrid">
+                <div class="card" style="grid-column: 1/-1; text-align: center; opacity: 0.4; padding: 3rem;">
+                    <p>No sensors currently lost.</p>
+                </div>
             </div>
         </div>
 
         <div style="margin-top: 4rem; text-align: center;">
             <button class="btn btn-secondary" onclick="fetchSensorData()" style="padding: 0.8rem 2.5rem;">
-                <i data-lucide="refresh-cw"
-                    style="width: 16px; display: inline-block; vertical-align: middle; margin-right: 0.5rem;"></i> Force
-                Refresh
+                <i data-lucide="refresh-cw" style="width: 16px; margin-right: 0.5rem;"></i> Force Refresh
             </button>
         </div>
     </div>
@@ -486,7 +490,7 @@
             <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
                 <div class="form-group">
                     <label>SDR Device</label>
-                    <input type="text" id="sdr_device" placeholder=":0">
+                    <input type="text" id="sdr_device">
                 </div>
                 <div class="form-group">
                     <label>Gain (auto/dB)</label>
@@ -494,65 +498,52 @@
                 </div>
                 <div class="form-group">
                     <label>Sample Rate</label>
-                    <select id="sdr_samplerate"
-                        style="width: 100%; background: var(--input-bg); border: 1px solid var(--input-border); color: white; padding: 0.8rem; border-radius: 10px;">
+                    <select id="sdr_samplerate">
                         <option value="250k">250k</option>
                         <option value="1024k">1024k</option>
                         <option value="2048k">2048k</option>
-                        <option value="2400k">2400k (MAX)</option>
                     </select>
                 </div>
             </div>
+
             <div class="form-group"
                 style="background: rgba(255, 255, 255, 0.05); padding: 1rem; border-radius: 14px; margin-bottom: 2rem;">
                 <label style="color: var(--accent-color); font-weight: 600; margin-bottom: 1rem;">SDR
                     OPTIMIZATION</label>
                 <div style="display: flex; flex-direction: column; gap: 0.8rem;">
-                    <label style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer; color: white;">
-                        <input type="checkbox" id="sdr_autolevel" style="width: auto;"> Auto-Sensitivity
-                        (Autolevel/Squelch)
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer; color: white;">
-                        <input type="checkbox" id="sdr_noise" style="width: auto;"> Noise Floor Tracking
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer; color: white;">
-                        <input type="checkbox" id="sdr_starred" style="width: auto;"> Enable Starred Protocols
-                        (Experimental)
-                    </label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <label style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer; color: white;">
+                            <input type="checkbox" id="sdr_autolevel"> Auto-Sensitivity
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer; color: white;">
+                            <input type="checkbox" id="sdr_noise"> Noise Tracking
+                        </label>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <label style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer; color: white;">
+                            <input type="checkbox" id="sdr_starred"> Starred Protocols
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer; color: white;">
+                            <input type="checkbox" id="sdr_celsius"> Convert °F to °C
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top: 1rem; margin-bottom: 0;">
+                    <label>Stale Threshold (minutes)</label>
+                    <input type="number" id="sdr_stale_threshold" min="1" max="1440">
                 </div>
             </div>
 
             <div class="form-group">
                 <label>Custom Protocols (Override)</label>
-                <input type="text" id="sdr_protocols" placeholder="e.g. 19,25,31 (Leave empty for ALL)">
+                <input type="text" id="sdr_protocols" placeholder="e.g. 19,25,31">
             </div>
 
-            <hr style="opacity: 0.05; margin: 2rem 0;">
-
-            <div class="form-row" style="display: grid; grid-template-columns: 3fr 1.5fr; gap: 1rem;">
-                <div class="form-group">
-                    <label>MQTT Broker IP</label>
-                    <input type="text" id="mqtt_broker">
-                </div>
-                <div class="form-group">
-                    <label>Port</label>
-                    <input type="text" id="mqtt_port">
-                </div>
-            </div>
-            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <div class="form-group">
-                    <label>MQTT User</label>
-                    <input type="text" id="mqtt_user">
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="mqtt_pass">
-                </div>
-            </div>
             <div class="form-group">
-                <label>Topic Template</label>
-                <input type="text" id="mqtt_topic">
+                <label>MQTT Broker IP</label>
+                <input type="text" id="mqtt_broker">
             </div>
+
             <div class="modal-actions" style="display: flex; gap: 1rem; margin-top: 2rem;">
                 <button class="btn btn-primary" style="flex: 1;" onclick="saveSettings()">Apply Changes</button>
                 <button class="btn btn-secondary" onclick="toggleModal(false)">Close</button>
@@ -562,7 +553,12 @@
 
     <script>
         const sensorGrid = document.getElementById('sensorGrid');
+        const lostGrid = document.getElementById('lostGrid');
         const modal = document.getElementById('settingsModal');
+
+        let lastSensorData = {};
+        let staleThresholdMins = 60;
+        let expandedCards = new Set();
 
         async function fetchSensorData() {
             try {
@@ -572,6 +568,13 @@
             } catch (err) { console.error("Fetch failed:", err); }
         }
 
+        function switchTab(tab) {
+            document.getElementById('tab-active').classList.toggle('active', tab === 'active');
+            document.getElementById('tab-lost').classList.toggle('active', tab === 'lost');
+            document.getElementById('active-view').style.display = tab === 'active' ? 'block' : 'none';
+            document.getElementById('lost-view').style.display = tab === 'lost' ? 'block' : 'none';
+        }
+
         function toggleModal(show) {
             modal.style.display = show ? 'flex' : 'none';
             if (show) loadSettings();
@@ -579,215 +582,110 @@
 
         async function loadSettings() {
             const resp = await fetch('/api/settings');
-            const settings = await resp.json();
-            Object.keys(settings).forEach(key => {
-                const input = document.getElementById(key);
-                if (input) {
-                    if (input.type === 'checkbox') input.checked = settings[key] === '1';
-                    else input.value = settings[key] || '';
+            const s = await resp.json();
+            staleThresholdMins = parseInt(s.sdr_stale_threshold || '60');
+            Object.keys(s).forEach(k => {
+                const el = document.getElementById(k);
+                if (el) {
+                    if (el.type === 'checkbox') el.checked = s[k] === '1';
+                    else el.value = s[k] || '';
                 }
             });
         }
 
         async function saveSettings() {
             const settings = {};
-            ['sdr_freq', 'sdr_protocols', 'sdr_device', 'sdr_gain', 'mqtt_broker', 'mqtt_port', 'mqtt_user', 'mqtt_pass', 'mqtt_topic', 'sdr_autolevel', 'sdr_noise', 'sdr_starred', 'sdr_samplerate', 'sdr_celsius'].forEach(k => {
+            ['sdr_freq', 'sdr_protocols', 'sdr_device', 'sdr_gain', 'mqtt_broker', 'sdr_autolevel', 'sdr_noise', 'sdr_starred', 'sdr_samplerate', 'sdr_celsius', 'sdr_stale_threshold'].forEach(k => {
                 const el = document.getElementById(k);
-                if (el) {
-                    if (el.type === 'checkbox') settings[k] = el.checked ? '1' : '0';
-                    else settings[k] = el.value;
-                }
+                if (el) settings[k] = el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value;
             });
-
-            await fetch('/api/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(settings)
-            });
+            await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) });
             toggleModal(false);
-            setTimeout(fetchSensorData, 2000);
-        }
-
-        function cleanName(name) {
-            if (!name) return 'Unknown';
-            return name.replace(/Generic /gi, '').replace(/Generic/gi, '').trim();
+            setTimeout(fetchSensorData, 1000);
         }
 
         const FIELD_MAP = {
             'temperature_c': { label: 'Temp', icon: 'thermometer' },
-            'temperature_f': { label: 'Temp', icon: 'thermometer' },
             'humidity': { label: 'Humidity', icon: 'droplets' },
-            'pressure_hpa': { label: 'Pressure', icon: 'gauge' },
-            'wind_avg_m_s': { label: 'Wind Avg', icon: 'wind' },
-            'wind_max_m_s': { label: 'Wind Max', icon: 'wind' },
-            'wind_dir_deg': { label: 'Wind Dir', icon: 'compass' },
-            'rain_mm': { label: 'Rain', icon: 'cloud-rain' },
-            'rain_rate_mm_h': { label: 'Rain Rate', icon: 'cloud-rain' },
             'battery_ok': { label: 'Battery', icon: 'battery' },
-            'pressure_psi': { label: 'Tire Pressure', icon: 'gauge-circle' },
-            'uv': { label: 'UV Index', icon: 'sun' },
-            'lux': { label: 'Light', icon: 'sun' },
-            'moisture': { label: 'Moisture', icon: 'sprout' },
-            'rssi': { label: 'Signal (RSSI)', icon: 'signal' },
-            'snr': { label: 'Signal (SNR)', icon: 'activity' },
-            'noise': { label: 'Noise Floor', icon: 'bar-chart-2' }
+            'rssi': { label: 'RSSI', icon: 'signal' },
+            'snr': { label: 'SNR', icon: 'activity' },
+            'noise': { label: 'Noise', icon: 'bar-chart-2' },
+            'pressure_hpa': { label: 'Pressure', icon: 'gauge' },
+            'moisture': { label: 'Moisture', icon: 'sprout' }
         };
 
-        function timeAgo(date) {
-            const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-            if (seconds < 10) return "Just now";
-            if (seconds < 60) return seconds + "s";
-            if (seconds < 3600) return Math.floor(seconds / 60) + "m";
-            return Math.floor(seconds / 3600) + "h ago";
+        function cleanName(n) { return n ? n.replace(/Generic /gi, '').trim() : 'Unknown'; }
+        function timeAgo(d) {
+            const s = Math.floor((new Date() - new Date(d)) / 1000);
+            return s < 10 ? "Just now" : (s < 60 ? s + "s" : (s < 3600 ? Math.floor(s / 60) + "m" : Math.floor(s / 3600) + "h ago"));
         }
 
-        // Global state for expanded cards
-        let expandedCards = new Set();
+        function toggleCard(id) {
+            if (expandedCards.has(id)) expandedCards.delete(id);
+            else expandedCards.add(id);
+            renderSensors(window.lastSensors);
+        }
 
-        function toggleCard(sensorId) {
-            if (expandedCards.has(sensorId)) {
-                expandedCards.delete(sensorId);
-            } else {
-                expandedCards.add(sensorId);
-            }
-            if (window.lastSensors) renderSensors(window.lastSensors);
+        async function editAlias(id, current) {
+            const alias = prompt("Friendly Name:", current || "");
+            if (alias === null) return;
+            await fetch('/api/aliases', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sensor_id: id, alias: alias }) });
+            fetchSensorData();
         }
 
         function renderSensors(sensors) {
             window.lastSensors = sensors;
-            if (!sensors || sensors.length === 0) {
-                sensorGrid.innerHTML = '<div class="card" style="grid-column: 1/-1; text-align: center;"><p>Waiting for sensor signals...</p></div>';
-                return;
-            }
+            if (!sensors) return;
 
-            const sorted = sensors.sort((a, b) => {
-                const keyA = `${a.brand}${a.model}${a.sensor_id}`.toLowerCase();
-                const keyB = `${b.brand}${b.model}${b.sensor_id}`.toLowerCase();
-                return keyA.localeCompare(keyB);
+            const active = [], lost = [];
+            sensors.forEach(s => {
+                const age = Math.floor((new Date() - new Date(s.timestamp + "Z")) / 1000);
+                if (age > staleThresholdMins * 60) lost.push(s); else active.push(s);
             });
 
-            sensorGrid.innerHTML = sorted.map(s => {
-                let fullData = {};
-                try { fullData = JSON.parse(s.raw_json); } catch (e) { fullData = s; }
+            const draw = (list, box) => {
+                if (list.length === 0) { box.innerHTML = '<div class="card" style="grid-column:1/-1;text-align:center;opacity:0.4;"><p>No sensors found.</p></div>'; return; }
+                box.innerHTML = list.sort((a, b) => (a.alias || a.sensor_id).localeCompare(b.alias || b.sensor_id)).map(s => {
+                    let full = {}; try { full = JSON.parse(s.raw_json); } catch (e) { full = s; }
+                    const old = lastSensorData[s.sensor_id] || {};
+                    const updated = old.timestamp !== s.timestamp;
+                    const isExp = expandedCards.has(s.sensor_id);
 
-                const secondsSince = Math.floor((new Date() - new Date(s.timestamp + "Z")) / 1000);
-                let statusClass = 'status-online';
-                let cardOpacity = 1;
-                if (secondsSince > 300) { statusClass = 'status-stale'; cardOpacity = 0.7; }
-                if (secondsSince > 1800) { statusClass = 'status-offline'; cardOpacity = 0.5; }
-
-                const skipFields = ['time', 'model', 'id', 'brand', 'channel', 'battery_ok', 'mic', 'mod', 'freq', 'rssi', 'snr', 'noise'];
-                const dataKeys = Object.keys(fullData).filter(k => !skipFields.includes(k.toLowerCase()));
-
-                const isComplex = dataKeys.length > 3 || dataKeys.some(k => k.includes('wind') || k.includes('rain') || k.includes('pressure') || k.includes('tire'));
-                const isExpanded = expandedCards.has(s.sensor_id);
-
-                let mainContent = '';
-                if (!isComplex) {
-                    const temp = fullData.temperature_C || fullData.temperature_F || '--';
-                    const hum = fullData.humidity !== undefined ? fullData.humidity : '--';
-                    mainContent = `
-                        <div class="simple-metrics">
-                            <div class="temp-large">${temp}<span class="unit">°C</span></div>
-                            <div class="humid-overlay">
-                                <i data-lucide="droplets"></i>
-                                <span>${hum}% <small>Humid</small></span>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    const primaryKeys = dataKeys.slice(0, 4);
-                    const extraKeys = dataKeys.slice(4);
-
-                    const renderMetricRow = (k) => {
-                        const info = FIELD_MAP[k.toLowerCase()] || { label: k.replace(/_/g, ' '), icon: 'activity' };
-                        let val = fullData[k];
-                        let unit = '';
-                        const lvk = k.toLowerCase();
-                        if (lvk.includes('_c')) unit = '°C';
-                        if (lvk.includes('_f')) unit = '°F';
-                        if (lvk.includes('m_s')) unit = 'm/s';
-                        if (lvk.includes('deg')) unit = '°';
-                        if (lvk.includes('mm')) unit = 'mm';
-                        if (lvk.includes('hpa')) unit = ' hPa';
-                        if (lvk.includes('psi')) unit = ' PSI';
-                        if (lvk.includes('humidity')) unit = '%';
-                        if (lvk.includes('lux')) unit = ' lx';
-
-                        return `
-                            <div class="metric-row">
-                                <div class="metric-label"><i data-lucide="${info.icon}"></i> ${info.label}</div>
-                                <div class="metric-value">${val}${unit}</div>
-                            </div>
-                        `;
+                    const trend = (k, v) => {
+                        if (!old.raw_json) return '';
+                        const oV = JSON.parse(old.raw_json)[k];
+                        return (oV === undefined || oV === v) ? '' : (v > oV ? '<i class="trend-up" data-lucide="arrow-up-right"></i>' : '<i class="trend-down" data-lucide="arrow-down-right"></i>');
                     };
 
-                    mainContent = `
-                        <div class="metric-list">
-                            ${primaryKeys.map(renderMetricRow).join('')}
-                            ${extraKeys.length > 0 ? `
-                                <div class="metric-list-extra" style="display: ${isExpanded ? 'flex' : 'none'}; flex-direction: column; gap: 0.6rem;">
-                                    ${extraKeys.map(renderMetricRow).join('')}
-                                </div>
-                                <button class="toggle-details" onclick="toggleCard('${s.sensor_id}')">
-                                    <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}"></i>
-                                    ${isExpanded ? 'Show Less' : `Show more (+${extraKeys.length})`}
-                                </button>
-                            ` : ''}
-                        </div>
-                    `;
-                }
+                    const row = (k) => {
+                        const c = FIELD_MAP[k.toLowerCase()] || { label: k, icon: 'info' };
+                        return `<div class="metric-row"><div class="metric-label"><i data-lucide="${c.icon}"></i> ${c.label}</div><div class="metric-value">${full[k]}${trend(k, full[k])}</div></div>`;
+                    };
 
-                return `
-                    <div class="card ${isExpanded ? 'expanded' : ''}" style="opacity: ${cardOpacity}">
-                        <div class="card-header">
-                            <span class="sensor-id">#${s.sensor_id}</span>
-                            <div class="last-seen">
-                                <span class="status-dot ${statusClass}"></span>
-                                ${timeAgo(s.timestamp + "Z")}
+                    lastSensorData[s.sensor_id] = s;
+                    return `
+                        <div class="card ${s.battery_ok === 0 ? 'battery-low' : ''} ${updated && old.timestamp ? 'flash-update' : ''}" onclick="toggleCard('${s.sensor_id}')" style="cursor:pointer">
+                            <div class="card-header"><span class="sensor-id">#${s.sensor_id}</span><div class="last-seen"><div class="status-dot ${updated ? 'status-online' : 'status-stale'}"></div>${timeAgo(s.timestamp + "Z")}</div></div>
+                            <h3 onclick="event.stopPropagation();editAlias('${s.sensor_id}','${s.alias || ''}')">${s.alias || cleanName(s.brand + ' ' + s.model)} <i data-lucide="edit-3" style="width:12px;opacity:0.3"></i></h3>
+                            <div class="simple-metrics">
+                                <div class="temp-large">${full.temperature_C || '--'}${trend('temperature_C', full.temperature_C)}<span class="unit">°C</span></div>
+                                <div class="humid-overlay"><i data-lucide="droplets"></i> ${full.humidity || '--'}${trend('humidity', full.humidity)}%</div>
                             </div>
-                        </div>
-
-                        <h3>${cleanName(s.brand)}<br><small style="font-size: 0.8rem; opacity: 0.6; font-weight: 400;">${cleanName(s.model)}</small></h3>
-
-                        ${mainContent}
-
-                        <div class="card-footer">
-                            <div class="battery-pill" style="color: ${s.battery_ok ? 'var(--success)' : 'var(--danger)'}">
-                                <i data-lucide="${s.battery_ok ? 'battery' : 'battery-low'}"></i>
-                                ${s.battery_ok ? 'BATTERY OK' : 'LOW BATT'}
+                            <div style="display:${isExp ? 'flex' : 'none'};flex-direction:column;gap:0.5rem;margin-top:0.5rem;border-top:1px solid rgba(255,255,255,0.05);padding-top:1rem;">
+                                ${Object.keys(full).filter(k => !['time', 'brand', 'model', 'id', 'sensor_id', 'raw_json', 'timestamp', 'battery_ok', 'rssi', 'snr', 'noise', 'alias'].includes(k.toLowerCase())).map(row).join('')}
+                                ${row('rssi')} ${row('snr')}
                             </div>
-                            <span class="ch-label">CH ${s.channel || 0}</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            lucide.createIcons();
+                        </div>`;
+                }).join('');
+                lucide.createIcons();
+            };
+            draw(active, sensorGrid);
+            draw(lost, lostGrid);
         }
 
         const socket = io();
-
-        socket.on('connect', () => {
-            console.log('Connected to Live Data Stream');
-            const indicator = document.getElementById('liveIndicator');
-            if (indicator) {
-                indicator.innerHTML = '<span class="status-dot status-online"></span> LIVE';
-            }
-        });
-
-        socket.on('disconnect', () => {
-            const indicator = document.getElementById('liveIndicator');
-            if (indicator) {
-                indicator.innerHTML = '<span class="status-dot status-offline"></span> OFFLINE';
-            }
-        });
-
-        socket.on('new_data', (data) => {
-            console.log(`Live update: received ${data.length} sensors`);
-            renderSensors(data);
-        });
-
+        socket.on('new_data', renderSensors);
         fetchSensorData();
     </script>
 </body>
