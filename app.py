@@ -256,7 +256,7 @@ def sdr_worker():
             port = get_setting('mqtt_port', '1883')
             user = get_setting('mqtt_user', '')
             pw = get_setting('mqtt_pass', '')
-            topic = get_setting('mqtt_topic', 'rtl_433[/model][/id]')
+            topic = get_setting('mqtt_topic', 'rtl_433[/model][/id][/channel][/address]')
 
             # Heuristic: Fix serial ID if user forgot the colon
             if len(device) > 2 and not device.startswith(':') and not device.isdigit():
