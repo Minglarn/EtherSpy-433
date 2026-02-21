@@ -474,12 +474,15 @@
         /* Protocol Selector Specific */
         .protocol-list {
             margin-top: 1rem;
-            max-height: 350px;
+            max-height: 60vh;
             overflow-y: auto;
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
             background: rgba(0, 0, 0, 0.2);
             padding: 0.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
         }
 
         .protocol-item {
@@ -488,6 +491,7 @@
             gap: 1rem;
             padding: 0.6rem 0.8rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
             cursor: pointer;
             transition: background 0.2s;
         }
@@ -693,7 +697,7 @@
 
     <!-- Protocol Selector Modal -->
     <div class="modal" id="protocolModal" style="z-index: 1100;">
-        <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-content" style="max-width: 850px;">
             <div class="search-container">
                 <h2 style="margin-bottom: 1rem; font-size: 1.3rem; font-weight: 600;">Välj Protokoll</h2>
                 <div style="position: relative;">
