@@ -107,41 +107,60 @@ def sdr_worker():
         try:
             freq = get_setting('sdr_freq', '433.92M')
             gain = get_setting('sdr_gain', 'auto')
-            protocols = get_setting('sdr_protocols', '-G')
-            device = get_setting('sdr_device', ':00000102')
+            protocols = get_setting('sdr_protocols', '')
+            device = get_setting('sdr_device', ':0')
 
+            # Basic command structure
+            # We add '-F log' to see internal errors in the stdout stream
             cmd = [
                 "rtl_433",
                 "-d", device,
                 "-f", freq,
                 "-g", gain,
+                "-F", "log",
                 "-F", "json",
                 "-M", "level",
                 "-M", "metadata",
                 "-M", "time:iso8601"
             ]
             
-            # Add protocols if specified
-            if protocols:
+            # Handle protocols
+            if protocols.strip().upper() == "-G" or protocols.strip().lower() == "all":
+                cmd.append("-G")
+            elif protocols.strip():
                 for p in protocols.split(','):
                     cmd.extend(["-R", p.strip()])
             
             print(f"Starting SDR: {' '.join(cmd)}")
+            # Use stderr=subprocess.STDOUT to catch everything
             sdr_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
             
             for line in sdr_process.stdout:
-                try:
-                    data = json.loads(line)
-                    save_to_db(data)
-                except json.JSONDecodeError:
-                    if "R82XX" not in line: # Filter noisy logs
-                        print(f"SDR Debug: {line.strip()}")
+                line = line.strip()
+                if not line: continue
+                
+                # Check if it's JSON (the data we want)
+                if line.startswith('{') and line.endswith('}'):
+                    try:
+                        data = json.loads(line)
+                        save_to_db(data)
+                        continue
+                    except json.JSONDecodeError:
+                        pass
+                
+                # Otherwise, it's a log/debug message
+                # Suppress known noisy but harmless logs
+                if any(x in line for x in ["R82XX", "Exact sample rate", "Tuned to"]):
+                    continue
+                print(f"SDR Engine: {line}")
             
             sdr_process.wait()
+            rc = sdr_process.returncode
+            print(f"SDR Process exited with code {rc}")
         except Exception as e:
-            print(f"SDR Process Error: {e}")
+            print(f"SDR Worker Error: {e}")
         
-        print("SDR Process exited. Restarting in 5s...")
+        print("SDR Worker: Restarting engine in 5s...")
         time.sleep(5)
 
 def restart_sdr():
