@@ -7,6 +7,8 @@ services:
     devices:
       - "/dev/bus/usb:/dev/bus/usb"
     command:
+      - "-d"
+      - "${SDR_DEVICE:-:00000102}"
       - "-F"
       - "mqtt://${MQTT_BROKER:-192.168.1.125}:1883,user=${MQTT_USER:-},pass=${MQTT_PASS:-},retain=0,devices=rtl_433[/model][/id]"
       - "-M"
