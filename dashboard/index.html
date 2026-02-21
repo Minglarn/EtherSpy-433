@@ -205,6 +205,35 @@
             font-weight: 700;
         }
 
+        .filter-chip {
+            background: none;
+            border: none;
+            color: white;
+            padding: 0.4rem 0.9rem;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            opacity: 0.6;
+            font-weight: 600;
+        }
+
+        .filter-chip.active {
+            opacity: 1 !important;
+            background: var(--accent-color) !important;
+            color: var(--bg-color) !important;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .filter-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.4;
+            font-weight: 700;
+            margin-right: 0.2rem;
+        }
+
         .card-header {
             display: flex;
             justify-content: space-between;
@@ -457,11 +486,10 @@
                         style="width: 100%; padding: 0.6rem 1rem 0.6rem 2.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; font-size: 0.85rem;">
                 </div>
                 <div class="filter-group"
-                    style="display: flex; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); padding: 2px;">
-                    <button class="filter-chip active" id="filter-all" onclick="setQuickFilter('all')"
-                        style="background: none; border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 10px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s;">Alla</button>
-                    <button class="filter-chip" id="filter-batt" onclick="setQuickFilter('battery')"
-                        style="background: none; border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 10px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; opacity: 0.6;">Batteri</button>
+                    style="display: flex; align-items: center; background: rgba(0,0,0,0.2); border-radius: 14px; border: 1px solid rgba(255,255,255,0.1); padding: 3px; gap: 2px;">
+                    <span class="filter-label" style="margin-left: 8px;">Filter:</span>
+                    <button class="filter-chip" id="filter-all" onclick="setQuickFilter('all')">Alla</button>
+                    <button class="filter-chip" id="filter-batt" onclick="setQuickFilter('battery')">Batteri</button>
                 </div>
                 <select id="sortSelect" onchange="renderSensors(window.lastSensors)"
                     style="padding: 0.6rem 2.5rem 0.6rem 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; font-size: 0.85rem; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.7rem top 50%; background-size: 0.65rem auto;">
@@ -602,18 +630,12 @@
         function setQuickFilter(f) {
             currentQuickFilter = f;
             document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-            document.querySelectorAll('.filter-chip').forEach(c => c.style.opacity = '0.6');
-            document.querySelectorAll('.filter-chip').forEach(c => c.style.background = 'none');
-
             const btn = document.getElementById('filter-' + (f === 'all' ? 'all' : 'batt'));
-            btn.classList.add('active');
-            btn.style.opacity = '1';
-            btn.style.background = 'var(--accent-color)';
-            btn.style.color = 'var(--bg-color)';
-
-            // Re-render
+            if (btn) btn.classList.add('active');
             renderSensors(window.lastSensors);
         }
+        // Initialize UI
+        setQuickFilter('all');
 
         async function fetchSensorData() {
             try {
