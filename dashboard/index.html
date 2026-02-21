@@ -14,6 +14,7 @@
             --text-color: #f1f5f9;
             --danger: #ef4444;
             --success: #22c55e;
+            --warning: #f59e0b;
         }
 
         * {
@@ -57,6 +58,12 @@
             -webkit-text-fill-color: transparent;
         }
 
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
         .status-badge {
             background: var(--glass-bg);
             backdrop-filter: blur(12px);
@@ -67,6 +74,20 @@
             align-items: center;
             gap: 0.5rem;
             font-size: 0.9rem;
+        }
+
+        .settings-btn {
+            background: var(--glass-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .pulse {
@@ -146,8 +167,74 @@
             color: rgba(255, 255, 255, 0.6);
         }
 
-        .data-item i {
-            margin-right: 0.3rem;
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            padding: 3rem;
+            border-radius: 32px;
+            width: 90%;
+            max-width: 500px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.8rem 2rem;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: var(--bg-color);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
         }
 
         @keyframes pulse {
@@ -203,13 +290,15 @@
             <div class="logo">
                 <h1>EtherSpy-433</h1>
             </div>
-            <div class="status-badge">
-                <div class="pulse"></div> Live Monitoring Active
+            <div class="header-actions">
+                <button class="settings-btn" onclick="toggleModal(true)">⚙️ Settings</button>
+                <div class="status-badge">
+                    <div class="pulse"></div> Live Monitoring
+                </div>
             </div>
         </header>
 
         <div class="grid" id="sensorGrid">
-            <!-- Sensor cards will be injected here -->
             <div class="card" style="grid-column: 1/-1; text-align: center; opacity: 0.6;">
                 <p>Initializing SDR Stream...</p>
             </div>
@@ -220,28 +309,79 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 2rem;">SDR Configurations</h2>
+            <div class="form-group">
+                <label>Frequency (e.g. 433.92M)</label>
+                <input type="text" id="sdr_freq">
+            </div>
+            <div class="form-group">
+                <label>Protocols (e.g. -G for all)</label>
+                <input type="text" id="sdr_protocols">
+            </div>
+            <div class="form-group">
+                <label>SDR Device (Serial ID)</label>
+                <input type="text" id="sdr_device">
+            </div>
+            <div class="form-group">
+                <label>Gain (auto or dB)</label>
+                <input type="text" id="sdr_gain">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="saveSettings()">Save & Restart SDR</button>
+                <button class="btn btn-secondary" onclick="toggleModal(false)">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const sensorGrid = document.getElementById('sensorGrid');
+        const modal = document.getElementById('settingsModal');
 
         async function fetchSensorData() {
             try {
                 const response = await fetch('/api/data');
                 const data = await response.json();
-
-                if (data.error) {
-                    console.error("API Error:", data.error);
-                    return;
-                }
-
                 renderSensors(data);
-            } catch (err) {
-                console.error("Failed to fetch sensor data:", err);
-            }
+            } catch (err) { console.error("Fetch failed:", err); }
+        }
+
+        function toggleModal(show) {
+            modal.style.display = show ? 'flex' : 'none';
+            if (show) loadSettings();
+        }
+
+        async function loadSettings() {
+            const resp = await fetch('/api/settings');
+            const settings = await resp.json();
+            Object.keys(settings).forEach(key => {
+                const input = document.getElementById(key);
+                if (input) input.value = settings[key];
+            });
+        }
+
+        async function saveSettings() {
+            const settings = {
+                sdr_freq: document.getElementById('sdr_freq').value,
+                sdr_protocols: document.getElementById('sdr_protocols').value,
+                sdr_device: document.getElementById('sdr_device').value,
+                sdr_gain: document.getElementById('sdr_gain').value
+            };
+
+            await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settings)
+            });
+            toggleModal(false);
+            alert("Settings applied. SDR is restarting...");
         }
 
         function renderSensors(sensors) {
             if (!sensors || sensors.length === 0) {
-                sensorGrid.innerHTML = '<div class="card" style="grid-column: 1/-1; text-align: center;"><p>No sensors detected yet. Waiting for 433MHz traffic...</p></div>';
+                sensorGrid.innerHTML = '<div class="card" style="grid-column: 1/-1; text-align: center;"><p>No sensors detected. Check settings or wait for traffic...</p></div>';
                 return;
             }
 

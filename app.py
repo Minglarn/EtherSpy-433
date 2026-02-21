@@ -3,7 +3,9 @@ import json
 import threading
 import time
 import sqlite3
-from flask import Flask, jsonify, send_from_directory
+import subprocess
+import signal
+from flask import Flask, jsonify, send_from_directory, request
 from flask_cors import CORS
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
@@ -16,17 +18,15 @@ CORS(app)
 # SQLite configuration
 DB_PATH = os.getenv('DB_PATH', 'data/etherspy.db')
 
-# MQTT configuration (External Broker)
-MQTT_BROKER = os.getenv('MQTT_BROKER', '192.168.1.125')
-MQTT_PORT = int(os.getenv('MQTT_PORT', 1883))
-MQTT_USER = os.getenv('MQTT_USER', '')
-MQTT_PASS = os.getenv('MQTT_PASS', '')
-MQTT_TOPIC = os.getenv('MQTT_TOPIC', 'rtl_433/#')
+# Global SDR Process handle
+sdr_process = None
+sdr_thread = None
 
 def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    # Sensors Data Table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS sensors_data (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,6 +41,27 @@ def init_db():
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    # Settings Table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    """)
+    # Default Settings
+    defaults = [
+        ('sdr_freq', '433.92M'),
+        ('sdr_gain', 'auto'),
+        ('sdr_protocols', '-G'),
+        ('sdr_device', ':00000102'),
+        ('mqtt_broker', os.getenv('MQTT_BROKER', '192.168.1.125')),
+        ('mqtt_port', os.getenv('MQTT_PORT', '1883')),
+        ('mqtt_user', os.getenv('MQTT_USER', '')),
+        ('mqtt_pass', os.getenv('MQTT_PASS', ''))
+    ]
+    for key, val in defaults:
+        cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, val))
+    
     conn.commit()
     conn.close()
 
@@ -48,6 +69,12 @@ def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+def get_setting(key, default=None):
+    conn = get_db_connection()
+    row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+    conn.close()
+    return row['value'] if row else default
 
 def save_to_db(data):
     try:
@@ -73,33 +100,55 @@ def save_to_db(data):
     except Exception as e:
         print(f"Error inserting into SQLite: {e}")
 
-# MQTT Callbacks
-def on_connect(client, userdata, flags, rc):
-    print(f"Connected to MQTT Broker ({MQTT_BROKER}) with result code {rc}")
-    client.subscribe(MQTT_TOPIC)
-
-def on_message(client, userdata, msg):
-    try:
-        payload = json.loads(msg.payload.decode())
-        save_to_db(payload)
-    except Exception as e:
-        print(f"Error processing MQTT message: {e}")
-
-def mqtt_worker():
-    client = mqtt.Client()
-    if MQTT_USER and MQTT_PASS:
-        client.username_pw_set(MQTT_USER, MQTT_PASS)
-    
-    client.on_connect = on_connect
-    client.on_message = on_message
-    
+# SDR Management
+def sdr_worker():
+    global sdr_process
     while True:
         try:
-            client.connect(MQTT_BROKER, MQTT_PORT, 60)
-            client.loop_forever()
+            freq = get_setting('sdr_freq', '433.92M')
+            gain = get_setting('sdr_gain', 'auto')
+            protocols = get_setting('sdr_protocols', '-G')
+            device = get_setting('sdr_device', ':00000102')
+
+            cmd = [
+                "rtl_433",
+                "-d", device,
+                "-f", freq,
+                "-g", gain,
+                protocols,
+                "-F", "json",
+                "-M", "level",
+                "-M", "metadata",
+                "-M", "time:iso8601"
+            ]
+            
+            print(f"Starting SDR: {' '.join(cmd)}")
+            sdr_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            
+            for line in sdr_process.stdout:
+                try:
+                    data = json.loads(line)
+                    save_to_db(data)
+                except json.JSONDecodeError:
+                    if "R82XX" not in line: # Filter noisy logs
+                        print(f"SDR Debug: {line.strip()}")
+            
+            sdr_process.wait()
         except Exception as e:
-            print(f"MQTT Connection failed: {e}. Retrying in 5s...")
-            time.sleep(5)
+            print(f"SDR Process Error: {e}")
+        
+        print("SDR Process exited. Restarting in 5s...")
+        time.sleep(5)
+
+def restart_sdr():
+    global sdr_process
+    if sdr_process:
+        print("Restarting SDR process with new settings...")
+        sdr_process.terminate()
+        try:
+            sdr_process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            sdr_process.kill()
 
 # Flask API
 @app.route('/api/data')
@@ -107,7 +156,6 @@ def get_sensor_data():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        # Query logic adapted for SQLite: Get latest entry for each sensor_id
         query = """
             SELECT s1.* 
             FROM sensors_data s1
@@ -125,6 +173,24 @@ def get_sensor_data():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/settings', methods=['GET', 'POST'])
+def manage_settings():
+    if request.method == 'GET':
+        conn = get_db_connection()
+        rows = conn.execute("SELECT key, value FROM settings").fetchall()
+        conn.close()
+        return jsonify({row['key']: row['value'] for row in rows})
+    
+    data = request.json
+    conn = get_db_connection()
+    for key, value in data.items():
+        conn.execute("UPDATE settings SET value = ? WHERE key = ?", (value, key))
+    conn.commit()
+    conn.close()
+    
+    restart_sdr()
+    return jsonify({'status': 'success'})
+
 @app.route('/')
 def serve_index():
     return send_from_directory(app.static_folder, 'index.html')
@@ -135,6 +201,6 @@ def serve_static(path):
 
 if __name__ == '__main__':
     init_db()
-    mqtt_thread = threading.Thread(target=mqtt_worker, daemon=True)
-    mqtt_thread.start()
+    sdr_thread = threading.Thread(target=sdr_worker, daemon=True)
+    sdr_thread.start()
     app.run(host='0.0.0.0', port=5000)

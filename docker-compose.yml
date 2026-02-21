@@ -1,47 +1,15 @@
 services:
-  # SDR Signal Receiver
-  rtl_433:
-    image: hertzg/rtl_433:latest
-    container_name: etherspy-sdr
+  # EtherSpy Unified Standalone Stack
+  etherspy:
+    image: ghcr.io/minglarn/etherspy-433/backend:latest
+    container_name: etherspy-app
     restart: always
+    ports:
+      - "5000:5000"
     devices:
       - "/dev/bus/usb:/dev/bus/usb"
     environment:
       - TZ=Europe/Stockholm
-      - MQTT_USER=${MQTT_USER:-}
-      - MQTT_PASS=${MQTT_PASS:-}
-      - SDR_FREQ=${SDR_FREQ:-433.92M}
-      - SDR_GAIN=${SDR_GAIN:-auto}
-      - SDR_PROTOCOLS=${SDR_PROTOCOLS:--G}
-    command:
-      - "-d"
-      - "${SDR_DEVICE:-:00000102}"
-      - "-f"
-      - "${SDR_FREQ:-433.92M}"
-      - "-g"
-      - "${SDR_GAIN:-auto}"
-      - "${SDR_PROTOCOLS:--G}"
-      - "-F"
-      - "mqtt://${MQTT_BROKER:-192.168.1.125}:1883,user=${MQTT_USER:-},pass=${MQTT_PASS:-},retain=0,devices=rtl_433[/model][/id]"
-      - "-M"
-      - "level"
-      - "-M"
-      - "metadata"
-      - "-M"
-      - "time:iso8601"
-
-  # Python Backend & Dashboard Web Server (Automated GHCR Image)
-  etherspy-backend:
-    image: ghcr.io/minglarn/etherspy-433/backend:latest
-    container_name: etherspy-backend
-    restart: always
-    ports:
-      - "5000:5000"
-    environment:
-      - MQTT_BROKER=${MQTT_BROKER:-192.168.1.125}
-      - MQTT_PORT=1883
-      - MQTT_USER=${MQTT_USER:-}
-      - MQTT_PASS=${MQTT_PASS:-}
       - DB_PATH=/app/data/etherspy.db
       - PYTHONUNBUFFERED=1
     volumes:
