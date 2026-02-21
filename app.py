@@ -59,6 +59,8 @@ def init_db():
             alias TEXT
         )
     """)
+    # Add indexes for performance and reliability
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_sensor_time ON sensors_data (sensor_id, timestamp)")
     # Default Settings
     defaults = [
         ('sdr_freq', '433.92M'),
@@ -144,18 +146,10 @@ def save_to_db(data):
         """, (str(sensor_id), brand, model, channel, battery_ok, temp, humidity, raw_json))
         conn.commit()
         
-        # Fetch the complete sensor list with aliases
-        cursor.execute("""
-            SELECT s1.*, a.alias FROM sensors_data s1
-            JOIN (
-                SELECT sensor_id, MAX(timestamp) as ts
-                FROM sensors_data
-                GROUP BY sensor_id
-            ) s2 ON s1.sensor_id = s2.sensor_id AND s1.timestamp = s2.ts
-            LEFT JOIN sensor_aliases a ON s1.sensor_id = a.sensor_id
-            GROUP BY s1.sensor_id
-        """)
-        all_sensors = [dict(row) for row in cursor.fetchall()]
+        conn.commit()
+        
+        # Consistent emission using the utility
+        all_sensors = get_latest_sensors(conn)
         print(f"Backend: Emitting {len(all_sensors)} sensors via Socket.IO")
         socketio.emit('new_data', all_sensors)
         
@@ -328,23 +322,10 @@ def get_sensor_data():
                 ) WHERE timestamp = max_ts
             )
             ORDER BY brand ASC, model ASC, sensor_id ASC
-        """
-        # Alternatively, a cleaner SQLite 3.7+ grouping:
-        # SELECT * FROM (SELECT * FROM sensors_data ORDER BY timestamp DESC) GROUP BY sensor_id
-        
-        # Using a more robust INNER JOIN version:
-        query = """
-            SELECT s1.* FROM sensors_data s1
-            JOIN (
-                SELECT sensor_id, MAX(timestamp) as ts
-                FROM sensors_data
-                GROUP BY sensor_id
-            ) s2 ON s1.sensor_id = s2.sensor_id AND s1.timestamp = s2.ts
-            GROUP BY s1.sensor_id
-        """
-        cursor.execute(query)
-        rows = [dict(row) for row in cursor.fetchall()]
-        conn.close()
+@app.route('/api/data')
+def get_sensor_data():
+    try:
+        rows = get_latest_sensors()
         return jsonify(rows)
     except Exception as e:
         return jsonify({'error': str(e)}), 500

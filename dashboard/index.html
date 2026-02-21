@@ -196,6 +196,15 @@
             box-shadow: 0 0 15px var(--glow-color);
         }
 
+        .badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+            font-weight: 700;
+        }
+
         .card-header {
             display: flex;
             justify-content: space-between;
@@ -653,9 +662,19 @@
                 if (age > staleThresholdMins * 60) lost.push(s); else active.push(s);
             });
 
+            // Update tab badges
+            document.getElementById('tab-active').innerHTML = `Aktiva Sensorer <span class="badge">${active.length}</span>`;
+            document.getElementById('tab-lost').innerHTML = `Förlorade / Inaktiva <span class="badge">${lost.length}</span>`;
+
             const draw = (list, box) => {
-                if (list.length === 0) { box.innerHTML = '<div class="card" style="grid-column:1/-1;text-align:center;opacity:0.4;"><p>No sensors found.</p></div>'; return; }
-                box.innerHTML = list.sort((a, b) => (a.alias || a.sensor_id).localeCompare(b.alias || b.sensor_id)).map(s => {
+                if (list.length === 0) { box.innerHTML = '<div class="card" style="grid-column:1/-1;text-align:center;opacity:0.4;"><p>Inga sensorer hittades.</p></div>'; return; }
+
+                // Sort active by timestamp (newest first), lost alphabetically
+                const sorted = list === active
+                    ? list.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                    : list.sort((a, b) => (a.alias || a.sensor_id).localeCompare(b.alias || b.sensor_id));
+
+                box.innerHTML = sorted.map(s => {
                     let full = {}; try { full = JSON.parse(s.raw_json); } catch (e) { full = s; }
                     const old = lastSensorData[s.sensor_id] || {};
                     const updated = old.timestamp !== s.timestamp;
@@ -674,10 +693,9 @@
                         return `<div class="metric-row"><div class="metric-label"><i data-lucide="${c.icon}"></i> ${c.label}</div><div class="metric-value">${v}${trend(k, v)}</div></div>`;
                     };
 
-                    // Define internal fields to exclude from generic rendering
                     const EXCLUDE = ['time', 'brand', 'model', 'id', 'sensor_id', 'raw_json', 'timestamp', 'alias', 'battery_ok'];
-
                     lastSensorData[s.sensor_id] = s;
+
                     return `
                         <div class="card ${updated && old.timestamp ? 'flash-update' : ''}" onclick="editAlias('${s.sensor_id}','${s.alias || ''}')" style="cursor:pointer">
                             <div class="card-header"><span class="sensor-id">#${s.sensor_id}</span><div class="last-seen"><div class="status-dot ${updated ? 'status-online' : 'status-stale'}"></div>${timeAgo(s.timestamp + "Z")}</div></div>
