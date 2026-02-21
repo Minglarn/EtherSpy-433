@@ -25,7 +25,6 @@ services:
   # Python Backend & Dashboard Web Server
   etherspy-backend:
     build: .
-    image: etherspy-backend:latest
     container_name: etherspy-backend
     restart: always
     ports:
