@@ -131,9 +131,9 @@
         }
 
         .card:hover {
-            transform: translateY(-8px);
+            transform: translateY(-5px);
             border-color: var(--accent-color);
-            box-shadow: 0 0 25px var(--glow-color);
+            box-shadow: 0 0 20px var(--glow-color);
         }
 
         /* Flash Animation on Update */
@@ -290,60 +290,92 @@
         }
 
         .card h3 {
-            font-size: 1.1rem;
+            font-size: 1.3rem;
             font-weight: 600;
             color: white;
             line-height: 1.2;
+            margin: 0.2rem 0;
+            letter-spacing: -0.2px;
         }
 
-        .simple-metrics {
+        .hero-metrics {
             display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            margin: 0.5rem 0;
+            align-items: center;
+            justify-content: space-between;
+            margin: 0.8rem 0;
+            min-height: 80px;
         }
 
         .temp-large {
-            font-size: 3.5rem;
-            font-weight: 300;
+            font-size: 3.8rem;
+            font-weight: 500;
             display: flex;
             align-items: baseline;
-            gap: 0.2rem;
+            letter-spacing: -1px;
         }
 
         .temp-large .unit {
-            font-size: 1.5rem;
-            color: rgba(255, 255, 255, 0.4);
-            font-weight: 400;
+            font-size: 1.4rem;
+            color: var(--text-color);
+            opacity: 0.9;
+            margin-left: 0.1rem;
+            align-self: flex-start;
+            margin-top: 0.8rem;
         }
 
-        .humid-overlay {
+        .humid-side {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 0.6rem;
+            gap: 0.2rem;
+            min-width: 60px;
+        }
+
+        .humid-side i {
+            width: 20px;
+            height: 20px;
             color: var(--accent-color);
+        }
+
+        .humid-side .value {
             font-size: 1.1rem;
-            font-weight: 500;
+            font-weight: 600;
+            color: white;
+        }
+
+        .humid-side .label {
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+        }
+
+        .metric-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            margin: 1rem 0;
+            padding: 0.8rem 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .metric-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
         }
 
         .metric-label {
             display: flex;
             align-items: center;
-            gap: 0.7rem;
-            color: rgba(255, 255, 255, 0.6);
+            gap: 0.6rem;
+            color: rgba(255, 255, 255, 0.5);
         }
 
         .metric-label i {
-            width: 16px;
+            width: 14px;
             color: var(--accent-color);
-            opacity: 0.8;
+            opacity: 0.7;
         }
 
         .metric-value {
@@ -351,10 +383,7 @@
             color: white;
             display: flex;
             align-items: center;
-            gap: 0.3rem;
-            min-width: 65px;
-            justify-content: flex-end;
-            text-align: right;
+            gap: 0.2rem;
         }
 
         .card-footer {
@@ -362,9 +391,24 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.75rem;
-            padding-top: 1rem;
+            font-size: 0.7rem;
+            padding-top: 0.8rem;
             border-top: 1px solid rgba(255, 255, 255, 0.05);
+            font-weight: 600;
+        }
+
+        .batt-ok {
+            color: var(--success);
+        }
+
+        .batt-low {
+            color: var(--danger);
+            text-transform: uppercase;
+            font-weight: 800;
+        }
+
+        .batt-none {
+            color: rgba(255, 255, 255, 0.3);
         }
 
         /* Modals */
@@ -1057,37 +1101,58 @@
                     const hasMore = keys.length > 4;
 
                     // Content helper
-                    const getMetricsHtml = () => visibleKeys.map(k => row(k, full[k])).join('');
-                    const getHeaderHtml = () => `
-                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                            <span class="sensor-id">#${s.sensor_id}</span>
-                            <div style="display: flex; align-items: center; gap: 0.6rem;">
-                                <span class="update-badge" title="Antal uppdateringar">
-                                    <i data-lucide="refresh-cw" style="width: 10px; opacity: 0.7;"></i>
-                                    ${s.update_count || 1}
-                                </span>
-                                <div class="last-seen">
-                                    <div class="status-dot ${updated ? 'status-online' : 'status-stale'}"></div>
-                                    ${timeAgo(s.timestamp + "Z")}
-                                </div>
-                                <button onclick="event.stopPropagation(); deleteSensor('${s.uid}')" 
-                                    style="background: none; border: none; color: var(--danger); cursor: pointer; padding: 0.2rem; display: flex; align-items: center; opacity: 0.4; transition: all 0.2s;"
-                                    onmouseover="this.style.opacity=1; this.style.transform='scale(1.1)'" 
-                                    onmouseout="this.style.opacity=0.4; this.style.transform='scale(1)'" 
-                                    title="Radera sensor">
-                                    <i data-lucide="x-circle" style="width: 16px;"></i>
-                                </button>
+                    const getMetricsHtml = () => {
+                        const hasTemp = full.temperature_c !== undefined || full.temperature_f !== undefined;
+                        const isCelsius = document.getElementById('sdr_celsius')?.checked;
+
+                        if (hasTemp) {
+                            const tempVal = isCelsius ? full.temperature_c : (full.temperature_f || full.temperature_c);
+                            const humVal = full.humidity !== undefined ? `${full.humidity}%` : null;
+
+                            let html = `<div class="hero-metrics">
+                                <div class="temp-large">${tempVal}<span class="unit">°${isCelsius ? 'C' : 'F'}</span></div>`;
+
+                            if (humVal) {
+                                html += `<div class="humid-side">
+                                    <i data-lucide="droplets"></i>
+                                    <span class="value">${humVal}</span>
+                                    <span class="label">Humid</span>
+                                </div>`;
+                            }
+                            html += `</div>`;
+                            return html;
+                        } else {
+                            // Fallback list view for non-temp sensors
+                            return `<div class="metric-list">` + keys.map(k => row(k, full[k])).join('') + `</div>`;
+                        }
+                    };
+
+                    const getFooterHtml = () => {
+                        let battClass = 'batt-none';
+                        let battText = 'No Battery Info';
+                        if (full.battery_ok !== undefined) {
+                            const isOk = full.battery_ok === 1 || full.battery_ok === "OK";
+                            battClass = isOk ? 'batt-ok' : 'batt-low';
+                            battText = isOk ? 'Battery OK' : 'Battery LOW';
+                        }
+                        const channel = full.channel !== undefined ? `CH ${full.channel}` : '';
+                        const subtype = full.subtype !== undefined ? full.subtype : '';
+
+                        return `
+                            <div style="display: flex; gap: 0.5rem; opacity: 0.7; font-size: 0.65rem;">
+                                <span>${subtype}</span>
                             </div>
+                            <div class="${battClass}">${battText} ${channel}</div>
+                        `;
+                    };
+
+                    const getHeaderHtml = () => `
+                        <span class="sensor-id">#${s.sensor_id}</span>
+                        <div class="last-seen">
+                            ${timeAgo(s.timestamp + "Z")}
                         </div>
                     `;
                     const getTitleHtml = () => `${s.alias || cleanName(s.brand + ' ' + s.model)} <i data-lucide="edit-3" style="width:12px;opacity:0.3"></i>`;
-                    const getExpansionHtml = () => hasMore ? `
-                            <div style="text-align: center; margin-top: 0.2rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.4rem;">
-                                <button class="btn-text" onclick="event.stopPropagation(); toggleCard('${s.uid}')" style="font-size: 0.75rem; color: var(--accent-color); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; margin: 0 auto;">
-                                    ${isExpanded ? 'Visa färre <i data-lucide="chevron-up"></i>' : `Visa ${keys.length - 4} till <i data-lucide="chevron-down"></i>`}
-                                </button>
-                            </div>
-                        ` : '';
 
                     if (!cardEl) {
                         cardEl = document.createElement('div');
@@ -1098,8 +1163,8 @@
                         cardEl.innerHTML = `
                             <div class="card-header"></div>
                             <h3></h3>
-                            <div class="simple-metrics" style="margin-top: 0.4rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.7rem;"></div>
-                            <div class="expansion-area"></div>
+                            <div class="content-area"></div>
+                            <div class="card-footer"></div>
                         `;
                         box.appendChild(cardEl);
                     }
@@ -1108,13 +1173,13 @@
                     if (updated || !cardEl.dataset.rendered) {
                         const header = cardEl.querySelector('.card-header');
                         const title = cardEl.querySelector('h3');
-                        const metrics = cardEl.querySelector('.simple-metrics');
-                        const expansion = cardEl.querySelector('.expansion-area');
+                        const content = cardEl.querySelector('.content-area');
+                        const footer = cardEl.querySelector('.card-footer');
 
                         header.innerHTML = getHeaderHtml();
                         title.innerHTML = getTitleHtml();
-                        metrics.innerHTML = getMetricsHtml();
-                        expansion.innerHTML = getExpansionHtml();
+                        content.innerHTML = getMetricsHtml();
+                        footer.innerHTML = getFooterHtml();
 
                         // Granular icon update (Only for this card)
                         lucide.createIcons({ props: {}, attrs: {}, nameAttr: 'data-lucide', elements: cardEl.querySelectorAll('[data-lucide]') });
