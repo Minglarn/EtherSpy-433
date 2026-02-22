@@ -267,9 +267,14 @@ def sdr_worker():
             pw = get_setting('mqtt_pass', '')
             topic = get_setting('mqtt_topic', 'rtl_433[/model][/channel][/id]')
 
+            # Clean up accidental colons added by previous versions
+            if device and (device.startswith(':rtl_tcp') or device.startswith(':soapy')):
+                device = device[1:]
+                
             # Heuristic: Fix serial ID if user forgot the colon
-            if len(device) > 2 and not device.startswith(':') and not device.isdigit():
-                device = f":{device}"
+            if device and not device.startswith('rtl_tcp') and not device.startswith('soapy'):
+                if len(device) > 2 and not device.startswith(':') and not device.isdigit():
+                    device = f":{device}"
 
             # Basic command structure
             cmd = [

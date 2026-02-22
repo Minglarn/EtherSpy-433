@@ -663,8 +663,8 @@
             </div>
             <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
                 <div class="form-group">
-                    <label>SDR Device</label>
-                    <input type="text" id="sdr_device">
+                    <label>SDR Device (Serial or rtl_tcp:IP)</label>
+                    <input type="text" id="sdr_device" placeholder="e.g. :0 or rtl_tcp:192.168.1.10:1234">
                 </div>
                 <div class="form-group">
                     <label>Gain (auto/dB)</label>
@@ -1058,7 +1058,7 @@
                 });
 
                 // Get existing cards to check for removal
-                const currentIds = new Set(sorted.map(s => `card-${s.sensor_id}`));
+                const currentIds = new Set(sorted.map(s => `card-${s.uid}`));
                 Array.from(box.children).forEach(child => {
                     if (child.id && !currentIds.has(child.id)) box.removeChild(child);
                 });
@@ -1125,7 +1125,12 @@
                         const isCelsius = document.getElementById('sdr_celsius')?.checked;
 
                         // Find any key that looks like temperature (temp, temperature, etc)
-                        const tempKey = Object.keys(full).find(k => k.toLowerCase().includes('temp'));
+                        // Prioritize Celsius if both exist but matching failed, and use pre-filtered keys
+                        const tempKeys = keys.filter(k => k.toLowerCase().includes('temp'));
+                        let tempKey = tempKeys.find(k => k.toLowerCase().match(/(?:_|\s|)(c|celsius)$/)); // e.g. "temperature_c", "temp c"
+                        if (!tempKey && tempKeys.length > 0) {
+                            tempKey = tempKeys.find(k => !k.toLowerCase().match(/(?:_|\s|)(f|fahrenheit)$/)) || tempKeys[0];
+                        }
                         const hasTemp = tempKey !== undefined;
 
                         if (hasTemp) {
@@ -1133,8 +1138,12 @@
                             const tempVal = !isNaN(parseFloat(tempValRaw)) ? Math.round(tempValRaw * 10) / 10 : tempValRaw;
                             const humVal = full.humidity !== undefined ? `${full.humidity}%` : null;
 
+                            let unitStr = isCelsius ? 'C' : 'F';
+                            if (tempKey.toLowerCase().match(/(?:_|\s)?c$/)) unitStr = 'C';
+                            else if (tempKey.toLowerCase().match(/(?:_|\s)?f$/)) unitStr = 'F';
+
                             let html = `<div class="hero-metrics">
-                                <div class="temp-large">${tempVal}<span class="unit">°${isCelsius ? 'C' : 'F'}</span></div>`;
+                                <div class="temp-large">${tempVal}<span class="unit">°${unitStr}</span></div>`;
 
                             if (humVal) {
                                 html += `<div class="humid-side">
@@ -1144,6 +1153,22 @@
                                 </div>`;
                             }
                             html += `</div>`;
+
+                            // Show other keys below the hero metrics
+                            const extraKeys = keys.filter(k => k !== tempKey && k.toLowerCase() !== 'humidity');
+                            const visibleExtra = isExpanded ? extraKeys : extraKeys.slice(0, 2);
+                            const hasMoreExtra = extraKeys.length > 2;
+
+                            if (visibleExtra.length > 0) {
+                                html += `<div class="metric-list">` + visibleExtra.map(k => row(k, full[k])).join('') + `</div>`;
+                            }
+
+                            if (hasMoreExtra && !isExpanded) {
+                                html += `<div style="text-align: center; font-size: 0.7rem; opacity: 0.5; margin-top: -0.5rem;">Visa mer...</div>`;
+                            } else if (hasMoreExtra && isExpanded) {
+                                html += `<div style="text-align: center; font-size: 0.7rem; opacity: 0.5; margin-top: 0.2rem;">Visa mindre</div>`;
+                            }
+
                             return html;
                         } else {
                             // Fallback list view for non-temp sensors - respect expansion
@@ -1224,8 +1249,11 @@
                         }
                     }
 
-                    // Smart Update: Only update DOM if data is actually new
-                    if (updated || !cardEl.dataset.rendered) {
+                    const wasExpanded = cardEl.dataset.expanded === "true";
+
+                    // Smart Update: Only update DOM if data is actually new, or if expanding state changed
+                    if (updated || !cardEl.dataset.rendered || isExpanded !== wasExpanded) {
+                        cardEl.dataset.expanded = isExpanded;
                         const header = cardEl.querySelector('.card-header');
                         const title = cardEl.querySelector('h3');
                         const content = cardEl.querySelector('.content-area');

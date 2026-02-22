@@ -1,6 +1,7 @@
 services:
   # EtherSpy Unified Standalone Stack
   etherspy:
+    build: .
     image: ghcr.io/minglarn/etherspy-433/backend:latest
     container_name: etherspy-app
     restart: always
@@ -16,3 +17,5 @@ services:
       - DEBUG=false
     volumes:
       - ./data:/app/data
+      - ./app.py:/app/app.py
+      - ./dashboard:/app/dashboard
