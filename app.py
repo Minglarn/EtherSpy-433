@@ -279,6 +279,8 @@ def sdr_worker():
                 "-g", gain,
                 "-F", "log", # Always show logs during startup
                 "-F", "json",
+                "-F", "kv",   # Added for pretty terminal logs
+                "-C", "color", # Added for colored output
                 "-M", "level",
                 "-M", "metadata",
                 "-M", "time:iso8601",
@@ -349,15 +351,22 @@ def sdr_worker():
                     try:
                         data = json.loads(line)
                         save_to_db(data)
-                        # Log a concise summary of the found sensor
+                        # We still log basic discovery, but the KV output will provide the details
                         brand = data.get('brand', 'Generic')
                         model = data.get('model', 'Unknown')
                         sid = data.get('id', data.get('sensor_id', '?'))
-                        print(f"SDR Engine: [DATA] Found {brand} {model} (#{sid})")
+                        # print(f"SDR Engine: [DATA] Found {brand} {model} (#{sid})")
                         continue
                     except json.JSONDecodeError:
                         pass
-                print(f"SDR Engine: {line}")
+                
+                # Print non-JSON lines directly for the "pretty" KV look
+                # but keep the SDR Engine prefix for system logs (lines starting with [ or parsing info)
+                if line.startswith('[') or 'rtl_433' in line.lower() or 'registered' in line.lower():
+                    print(f"SDR Engine: {line}")
+                else:
+                    # Raw KV lines for that authentic terminal look from the screenshot
+                    print(line)
             
             p.wait()
             rc = p.returncode
