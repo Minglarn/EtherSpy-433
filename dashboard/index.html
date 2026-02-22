@@ -1216,9 +1216,9 @@
                             <div class="card-footer"></div>
                         `;
                         // If scroll is locked and we are sorting by newest, we keep the existing DOM order for existing cards
-                        // but we still want to add NEW cards at the top.
+                        // but we still want to add NEW cards at the BOTTOM to avoid shifting current view.
                         if (isScrollLocked && sortBy === 'newest') {
-                            box.prepend(cardEl); // Add new cards at the beginning
+                            box.appendChild(cardEl);
                         } else {
                             box.appendChild(cardEl);
                         }
