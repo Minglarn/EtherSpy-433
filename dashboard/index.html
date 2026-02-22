@@ -1144,8 +1144,14 @@
                             html += `</div>`;
                             return html;
                         } else {
-                            // Fallback list view for non-temp sensors
-                            return `<div class="metric-list">` + keys.map(k => row(k, full[k])).join('') + `</div>`;
+                            // Fallback list view for non-temp sensors - respect expansion
+                            let html = `<div class="metric-list">` + visibleKeys.map(k => row(k, full[k])).join('') + `</div>`;
+                            if (hasMore && !isExpanded) {
+                                html += `<div style="text-align: center; font-size: 0.7rem; opacity: 0.5; margin-top: -0.5rem;">Visa mer...</div>`;
+                            } else if (hasMore && isExpanded) {
+                                html += `<div style="text-align: center; font-size: 0.7rem; opacity: 0.5; margin-top: 0.2rem;">Visa mindre</div>`;
+                            }
+                            return html;
                         }
                     };
 
@@ -1169,18 +1175,37 @@
                     };
 
                     const getHeaderHtml = () => `
-                        <span class="sensor-id">#${s.sensor_id}</span>
-                        <div class="last-seen">
-                            ${timeAgo(s.timestamp + "Z")}
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <span class="sensor-id">#${s.sensor_id}</span>
+                            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                <span class="update-badge" title="Antal uppdateringar" style="background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 6px; display: flex; align-items: center; gap: 4px; font-size: 0.65rem; color: rgba(255,255,255,0.5);">
+                                    <i data-lucide="refresh-cw" style="width: 10px; opacity: 0.7;"></i>
+                                    ${s.update_count || 1}
+                                </span>
+                                <div class="last-seen">
+                                    ${timeAgo(s.timestamp + "Z")}
+                                </div>
+                                <button onclick="event.stopPropagation(); deleteSensor('${s.uid}')" 
+                                    style="background: none; border: none; color: var(--danger); cursor: pointer; padding: 0.2rem; display: flex; align-items: center; opacity: 0.4; transition: all 0.2s;"
+                                    onmouseover="this.style.opacity=1; this.style.transform='scale(1.1)'" 
+                                    onmouseout="this.style.opacity=0.4; this.style.transform='scale(1)'" 
+                                    title="Radera sensor">
+                                    <i data-lucide="x-circle" style="width: 14px;"></i>
+                                </button>
+                            </div>
                         </div>
                     `;
-                    const getTitleHtml = () => `${s.alias || cleanName(s.brand + ' ' + s.model)} <i data-lucide="edit-3" style="width:12px;opacity:0.3"></i>`;
+                    const getTitleHtml = () => `
+                        <span onclick="event.stopPropagation(); editAlias('${s.uid}', '${s.alias || ''}')" style="cursor: pointer;">
+                            ${s.alias || cleanName(s.brand + ' ' + s.model)} 
+                            <i data-lucide="edit-3" style="width:12px;opacity:0.3"></i>
+                        </span>`;
 
                     if (!cardEl) {
                         cardEl = document.createElement('div');
                         cardEl.id = cardId;
                         cardEl.className = 'card';
-                        cardEl.onclick = () => editAlias(s.uid, s.alias || '');
+                        cardEl.onclick = () => toggleCard(s.uid);
                         cardEl.style.cursor = 'pointer';
                         cardEl.innerHTML = `
                             <div class="card-header"></div>
