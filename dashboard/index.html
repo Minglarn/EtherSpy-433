@@ -620,6 +620,12 @@
             </div>
         </div>
 
+        <div id="scrollLockNotice"
+            style="display: none; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 0.5rem 1rem; border-radius: 12px; font-size: 0.8rem; margin-bottom: 1rem; align-items: center; gap: 0.5rem; animation: slideDown 0.3s ease;">
+            <i data-lucide="lock" style="width: 14px;"></i> Sortering pausad (Scroll Lock aktiv) — Scrolla till toppen
+            för att uppdatera ordningen.
+        </div>
+
         <div id="active-view">
             <div class="grid" id="sensorGrid">
                 <!-- Data renders here -->
@@ -986,6 +992,19 @@
             }
         }
 
+        let isScrollLocked = false;
+        window.addEventListener('scroll', () => {
+            const locked = window.scrollY > 150;
+            if (locked !== isScrollLocked) {
+                isScrollLocked = locked;
+                const notice = document.getElementById('scrollLockNotice');
+                if (notice) {
+                    notice.style.display = isScrollLocked ? 'flex' : 'none';
+                    if (!isScrollLocked) renderSensors(window.lastSensors); // Trigger immediate sort when scrolling back up
+                }
+            }
+        });
+
         function renderSensors(sensors) {
             window.lastSensors = sensors;
             if (!sensors) return;
@@ -1169,7 +1188,13 @@
                             <div class="content-area"></div>
                             <div class="card-footer"></div>
                         `;
-                        box.appendChild(cardEl);
+                        // If scroll is locked and we are sorting by newest, we keep the existing DOM order for existing cards
+                        // but we still want to add NEW cards at the top.
+                        if (isScrollLocked && sortBy === 'newest') {
+                            box.prepend(cardEl); // Add new cards at the beginning
+                        } else {
+                            box.appendChild(cardEl);
+                        }
                     }
 
                     // Smart Update: Only update DOM if data is actually new
@@ -1205,10 +1230,12 @@
                 });
 
                 // Ensure correct sorting order in DOM
-                sorted.forEach((s, idx) => {
-                    const el = document.getElementById(`card-${s.uid}`);
-                    if (el && box.children[idx] !== el) box.insertBefore(el, box.children[idx]);
-                });
+                if (!isScrollLocked || sortBy !== 'newest') {
+                    sorted.forEach((s, idx) => {
+                        const el = document.getElementById(`card-${s.uid}`);
+                        if (el && box.children[idx] !== el) box.insertBefore(el, box.children[idx]);
+                    });
+                }
             };
             draw(active, sensorGrid);
             draw(lost, lostGrid);
