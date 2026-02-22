@@ -1104,20 +1104,22 @@
                         box.appendChild(cardEl);
                     }
 
-                    // Update contents only if needed or keep it simple but granular
-                    const header = cardEl.querySelector('.card-header');
-                    const title = cardEl.querySelector('h3');
-                    const metrics = cardEl.querySelector('.simple-metrics');
-                    const expansion = cardEl.querySelector('.expansion-area');
+                    // Smart Update: Only update DOM if data is actually new
+                    if (updated || !cardEl.dataset.rendered) {
+                        const header = cardEl.querySelector('.card-header');
+                        const title = cardEl.querySelector('h3');
+                        const metrics = cardEl.querySelector('.simple-metrics');
+                        const expansion = cardEl.querySelector('.expansion-area');
 
-                    // Granular content update (prevents flickering)
-                    header.innerHTML = getHeaderHtml();
-                    title.innerHTML = getTitleHtml();
-                    metrics.innerHTML = getMetricsHtml();
-                    expansion.innerHTML = getExpansionHtml();
+                        header.innerHTML = getHeaderHtml();
+                        title.innerHTML = getTitleHtml();
+                        metrics.innerHTML = getMetricsHtml();
+                        expansion.innerHTML = getExpansionHtml();
 
-                    // Granular icon update (MUCH faster than global)
-                    lucide.createIcons({ props: {}, attrs: {}, nameAttr: 'data-lucide', elements: cardEl.querySelectorAll('[data-lucide]') });
+                        // Granular icon update (Only for this card)
+                        lucide.createIcons({ props: {}, attrs: {}, nameAttr: 'data-lucide', elements: cardEl.querySelectorAll('[data-lucide]') });
+                        cardEl.dataset.rendered = "true";
+                    }
 
                     if (updated && old.timestamp) {
                         const now = Date.now();
@@ -1145,7 +1147,22 @@
         }
 
         const socket = io();
-        socket.on('new_data', renderSensors);
+
+        // Throttled rendering to batch rapid updates
+        let renderTimeout = null;
+        let pendingSensors = null;
+
+        function throttledRender(sensors) {
+            pendingSensors = sensors;
+            if (renderTimeout) return;
+
+            renderTimeout = setTimeout(() => {
+                renderSensors(pendingSensors);
+                renderTimeout = null;
+            }, 100); // Batch updates every 100ms
+        }
+
+        socket.on('new_data', throttledRender);
 
         // Initial load
         (async () => {
