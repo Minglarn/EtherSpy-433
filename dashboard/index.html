@@ -1093,7 +1093,8 @@
                             label: k.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
                             icon: 'info'
                         };
-                        return `<div class="metric-row"><div class="metric-label"><i data-lucide="${c.icon}"></i> ${c.label}</div><div class="metric-value">${v}${trend(k, v)}</div></div>`;
+                        const val = !isNaN(parseFloat(v)) && isFinite(v) ? Math.round(v * 10) / 10 : v;
+                        return `<div class="metric-row"><div class="metric-label"><i data-lucide="${c.icon}"></i> ${c.label}</div><div class="metric-value">${val}${trend(k, v)}</div></div>`;
                     };
 
                     const isCelsius = document.getElementById('sdr_celsius')?.checked;
@@ -1128,7 +1129,8 @@
                         const hasTemp = tempKey !== undefined;
 
                         if (hasTemp) {
-                            const tempVal = full[tempKey];
+                            const tempValRaw = full[tempKey];
+                            const tempVal = !isNaN(parseFloat(tempValRaw)) ? Math.round(tempValRaw * 10) / 10 : tempValRaw;
                             const humVal = full.humidity !== undefined ? `${full.humidity}%` : null;
 
                             let html = `<div class="hero-metrics">
