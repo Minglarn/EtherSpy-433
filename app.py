@@ -280,7 +280,6 @@ def sdr_worker():
                 "-F", "log", # Always show logs during startup
                 "-F", "json",
                 "-F", "kv",   # Added for pretty terminal logs
-                "-C", "color", # Added for colored output
                 "-M", "level",
                 "-M", "metadata",
                 "-M", "time:iso8601",
