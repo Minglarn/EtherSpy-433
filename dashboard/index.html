@@ -1102,11 +1102,14 @@
 
                     // Content helper
                     const getMetricsHtml = () => {
-                        const hasTemp = full.temperature_c !== undefined || full.temperature_f !== undefined;
                         const isCelsius = document.getElementById('sdr_celsius')?.checked;
 
+                        // Find any key that looks like temperature (temp, temperature, etc)
+                        const tempKey = Object.keys(full).find(k => k.toLowerCase().includes('temp'));
+                        const hasTemp = tempKey !== undefined;
+
                         if (hasTemp) {
-                            const tempVal = isCelsius ? full.temperature_c : (full.temperature_f || full.temperature_c);
+                            const tempVal = full[tempKey];
                             const humVal = full.humidity !== undefined ? `${full.humidity}%` : null;
 
                             let html = `<div class="hero-metrics">

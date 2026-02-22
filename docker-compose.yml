@@ -13,5 +13,6 @@ services:
       - TZ=Europe/Stockholm
       - DB_PATH=/app/data/etherspy.db
       - PYTHONUNBUFFERED=1
+      - DEBUG=false
     volumes:
       - ./data:/app/data

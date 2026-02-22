@@ -363,8 +363,8 @@ def sdr_worker():
                 # but keep the SDR Engine prefix for system logs (lines starting with [ or parsing info)
                 if line.startswith('[') or 'rtl_433' in line.lower() or 'registered' in line.lower():
                     print(f"SDR Engine: {line}")
-                else:
-                    # Raw KV lines for that authentic terminal look from the screenshot
+                elif os.getenv('DEBUG', 'true').lower() == 'true':
+                    # Raw KV lines for that authentic terminal look from the screenshot, only in debug mode
                     print(line)
             
             p.wait()
